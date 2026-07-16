@@ -133,6 +133,7 @@ function ProgressBar({ pagadas, total, monto, label }) {
 
 function App() {
   const [ready, setReady] = useState(false);
+const [novedadesVistas, setNovedadesVistas] = useState([]);
   const [nuevaVersionDisponible, setNuevaVersionDisponible] = useState(null);
   const [linkDescarga, setLinkDescarga] = useState(null);
   const [diagnostico, setDiagnostico] = useState("Todavía no revisó...");
