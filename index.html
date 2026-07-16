@@ -1036,7 +1036,25 @@ const [novedadesVistas, setNovedadesVistas] = useState([]);
             ))}
           </div>
 
-          {/* Resumen del mes actual */}
+      {(()=>{
+  const pendientes = NOVEDADES.filter(n=>!novedadesVistas.includes(n.id));
+  if(pendientes.length===0) return null;
+  return(
+    <div style={{...cardStyle,border:`1.5px solid ${C.info}66`,background:C.infoSoft}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+        <div style={{fontSize:11,fontWeight:800,color:C.info,textTransform:"uppercase",letterSpacing:0.5}}>✨ Novedades</div>
+        <button onClick={()=>setNovedadesVistas(v=>[...v,...pendientes.map(n=>n.id)])} style={{background:"transparent",border:"none",color:C.muted,fontSize:16,cursor:"pointer",padding:2}}>✕</button>
+      </div>
+      {pendientes.map(n=>(
+        <div key={n.id} style={{marginBottom:8}}>
+          <div style={{fontSize:13,fontWeight:700,color:C.text}}>{n.titulo}</div>
+          <div style={{fontSize:12,color:C.muted,marginTop:2}}>{n.texto}</div>
+        </div>
+      ))}
+    </div>
+  );
+})()}    
+         {/* Resumen del mes actual */}
           {(()=>{
             const ahora = new Date();
             const mesActual = `${ahora.getFullYear()}-${String(ahora.getMonth()+1).padStart(2,"0")}`;
