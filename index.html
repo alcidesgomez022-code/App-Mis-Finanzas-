@@ -37,6 +37,10 @@ async function sGet(k) { try { const v = localStorage.getItem("finanzas_"+k); re
 async function sSet(k, v) { try { localStorage.setItem("finanzas_"+k, JSON.stringify(v)); } catch {} }
 
 const APP_VERSION = "1.1";
+const NOVEDADES = [
+  // Agregá acá cada cosa nueva. El "id" tiene que ser único y no repetirse nunca.
+  { id:"nv1", titulo:"Saldo de Ocio", texto:"Ahora podés ver cuánto te queda disponible para gastar en Ocio, acumulado mes a mes." },
+];
 const VERSION_CHECK_URL = "https://docs.google.com/document/d/1-uyo59vitIL4yijzp_rwyIBZ1W09o31X_XkPm_hmjEI/export?format=txt";
 const D_CUENTAS = { cerebro:"EKO", operativa:"Itaú", credito:"Ueno", ahorro:"Continental", ganaderia:"Mango", mutual:"Caja Mutual" };
 
