@@ -31,6 +31,7 @@
   };
 </script>
 <script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef } = React;
 
 async function sGet(k) { try { const v = localStorage.getItem("finanzas_"+k); return v ? JSON.parse(v) : null; } catch { return null; } }
 async function sSet(k, v) {
