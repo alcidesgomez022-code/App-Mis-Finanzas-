@@ -222,9 +222,9 @@ const [novedadesVistas, setNovedadesVistas] = useState([]);
 
   useEffect(()=>{
     async function cargar(){
-      const [h,er,f18,f5,v,p,cu,m,comp,perf,me,ai,ret,pd,os,gi,ag,ub,go] = await Promise.all([
+      const [h,er,f18,f5,v,p,cu,m,comp,perf,me,ai,ret,pd,os,gi,ag,ub,go,nv] = await Promise.all([
         sGet("h_v8"),sGet("er_v8"),sGet("f18_v8"),sGet("f5_v8"),
-        sGet("v_v8"),sGet("p_v8"),sGet("cu_v8"),sGet("meta_v8"),sGet("comp_v8"),sGet("perf_v8"),sGet("me_v8"),sGet("ai_v8"),sGet("ret_v8"),sGet("pd_v8"),sGet("os_v8"),sGet("gi_v8"),sGet("ag_v8"),sGet("ub_v8"),sGet("go_v8"),
+        sGet("v_v8"),sGet("p_v8"),sGet("cu_v8"),sGet("meta_v8"),sGet("comp_v8"),sGet("perf_v8"),sGet("me_v8"),sGet("ai_v8"),sGet("ret_v8"),sGet("pd_v8"),sGet("os_v8"),sGet("gi_v8"),sGet("ag_v8"),sGet("ub_v8"),sGet("nv_v8"),
       ]);
       if(h) setHistorial(h); if(er) setExtrasReg(er);
       if(f18) setFijos18(f18); if(f5) setFijos5(f5);
