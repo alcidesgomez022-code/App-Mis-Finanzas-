@@ -39,7 +39,7 @@ async function sSet(k, v) {
   catch (err) { try{ window.dispatchEvent(new CustomEvent("finanzas-storage-error",{detail:err&&err.name})); }catch{} return false; }
 }
 
-const APP_VERSION = "1.9";
+const APP_VERSION = "2.0";
 const NOVEDADES = [
   // Agregá acá cada cosa nueva. El "id" tiene que ser único y no repetirse nunca.
   { id:"nv1", titulo:"Saldo de Ocio", texto:"Ahora podés ver cuánto te queda disponible para gastar en Ocio, acumulado mes a mes." },
@@ -47,8 +47,25 @@ const NOVEDADES = [
   { id:"nv3", titulo:"Colores más claros", texto:"Los gastos ahora se ven en rojo y el ahorro en verde, para entender de un vistazo qué pasa con tu plata cada mes." },
   { id:"nv4", titulo:"Nuevo look", texto:"Rediseño visual: íconos más finos, colores más cuidados, y tarjetas con más profundidad para que se sienta más profesional." },
   { id:"nv5", titulo:"Perfil rápido", texto:"Tocá el círculo de tu iniciales en Inicio para ver tu perfil y editarlo, sin ir a Config. También sacamos la campanita — mostraba info duplicada." },
+  { id:"nv6", titulo:"Ordená tu Inicio", texto:"En Config → Orden Inicio podés reordenar y ocultar las tarjetas de tu pantalla principal como más te sirva." },
 ];
 const D_CUENTAS = { cerebro:"EKO", operativa:"Itaú", credito:"Ueno", ahorro:"Continental", ganaderia:"Mango", mutual:"Caja Mutual" };
+const INICIO_CARDS = [
+  { id:"statsgrid", label:"Resumen rápido (4 recuadros)" },
+  { id:"salud", label:"Salud financiera" },
+  { id:"patrimonio", label:"Patrimonio neto" },
+  { id:"novedades", label:"Novedades" },
+  { id:"racha", label:"Racha de ahorro" },
+  { id:"ocio", label:"Saldo de Ocio" },
+  { id:"estemes", label:"Este mes" },
+  { id:"vencimientos", label:"Próximos vencimientos" },
+  { id:"metas", label:"Metas de proyecto" },
+  { id:"gastoreal", label:"Gasto real vs estimado" },
+  { id:"comparativo", label:"Comparativo vs quincena anterior" },
+  { id:"promedio", label:"Promedio de ahorro mensual" },
+  { id:"progresodeudas", label:"Progreso de deudas" },
+  { id:"grafico3m", label:"Gráfico últimos 3 meses" },
+];
 
 const D18 = [
   { id:1, label:"Pago fijo 1", monto:300000, destino:"Banco", activo:true, cuotas:{ activo:true, pagadas:0, total:12 } },
@@ -190,6 +207,7 @@ function ProgressBar({ pagadas, total, monto, label }) {
 function App() {
   const [ready, setReady] = useState(false);
   const [novedadesVistas, setNovedadesVistas] = useState([]);
+  const [inicioOrden, setInicioOrden] = useState(INICIO_CARDS.map(c=>({id:c.id,visible:true})));
   const [tab, setTab] = useState("inicio");
   const [quincena, setQuincena] = useState("18");
   const [sueldo, setSueldo] = useState("");
@@ -275,9 +293,9 @@ function App() {
 
   useEffect(()=>{
     async function cargar(){
-      const [h,er,f18,f5,v,p,cu,m,comp,perf,me,ai,ret,pd,os,gi,ag,ub,go,nv] = await Promise.all([
+      const [h,er,f18,f5,v,p,cu,m,comp,perf,me,ai,ret,pd,os,gi,ag,ub,go,nv,io] = await Promise.all([
         sGet("h_v8"),sGet("er_v8"),sGet("f18_v8"),sGet("f5_v8"),
-        sGet("v_v8"),sGet("p_v8"),sGet("cu_v8"),sGet("meta_v8"),sGet("comp_v8"),sGet("perf_v8"),sGet("me_v8"),sGet("ai_v8"),sGet("ret_v8"),sGet("pd_v8"),sGet("os_v8"),sGet("gi_v8"),sGet("ag_v8"),sGet("ub_v8"),sGet("go_v8"),sGet("nv_v8"),
+        sGet("v_v8"),sGet("p_v8"),sGet("cu_v8"),sGet("meta_v8"),sGet("comp_v8"),sGet("perf_v8"),sGet("me_v8"),sGet("ai_v8"),sGet("ret_v8"),sGet("pd_v8"),sGet("os_v8"),sGet("gi_v8"),sGet("ag_v8"),sGet("ub_v8"),sGet("go_v8"),sGet("nv_v8"),sGet("io_v8"),
       ]);
       if(h) setHistorial(h); if(er) setExtrasReg(er);
       if(f18) setFijos18(f18); if(f5) setFijos5(f5);
@@ -294,6 +312,7 @@ function App() {
       if(ub) setUltimoBackup(ub);
       if(go) setGastosOcio(go);
       if(nv) setNovedadesVistas(nv);
+      if(io){ const known=new Set(io.map(x=>x.id)); const merged=[...io,...INICIO_CARDS.filter(c=>!known.has(c.id)).map(c=>({id:c.id,visible:true}))]; setInicioOrden(merged); }
       setReady(true);
     }
     cargar();
@@ -317,6 +336,20 @@ function App() {
   useEffect(()=>{ if(ready) sSet("ub_v8",ultimoBackup); },[ultimoBackup,ready]);
   useEffect(()=>{ if(ready) sSet("go_v8",gastosOcio); },[gastosOcio,ready]);
   useEffect(()=>{ if(ready) sSet("nv_v8",novedadesVistas); },[novedadesVistas,ready]);
+  useEffect(()=>{ if(ready) sSet("io_v8",inicioOrden); },[inicioOrden,ready]);
+  function ordenIdx(id){ const i = inicioOrden.findIndex(x=>x.id===id); return i===-1?999:i; }
+  function esVisible(id){ const it = inicioOrden.find(x=>x.id===id); return it?it.visible:true; }
+  function moverCard(id,dir){
+    setInicioOrden(prev=>{
+      const arr=[...prev]; const i=arr.findIndex(x=>x.id===id); const j=i+dir;
+      if(i<0||j<0||j>=arr.length) return prev;
+      [arr[i],arr[j]]=[arr[j],arr[i]];
+      return arr;
+    });
+  }
+  function toggleCardVisible(id){
+    setInicioOrden(prev=>prev.map(x=>x.id===id?{...x,visible:!x.visible}:x));
+  }
   useEffect(()=>{ if(ready) sSet("comp_v8",completadas); },[completadas,ready]);
   useEffect(()=>{ if(ready) sSet("perf_v8",perfil); },[perfil,ready]);
 
@@ -997,12 +1030,13 @@ function App() {
 
       <div className="main-content" style={{padding:"14px 16px 90px"}}>
 
-        {tab==="inicio"&&<>
+        {tab==="inicio"&&<div style={{display:"flex",flexDirection:"column"}}>
           {historial[0]?.pagos&&historial[0].pagos.some(p=>!p.done)&&<div onClick={()=>{setTab("historial");setSubTabH("quincena");}} style={{background:C.warnSoft,border:`1px solid #f3d49a`,borderRadius:14,padding:"13px 16px",marginBottom:14,fontSize:13,color:C.warn,fontWeight:600,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <span>⏳ Tenés {historial[0].pagos.filter(p=>!p.done).length} pago{historial[0].pagos.filter(p=>!p.done).length!==1?"s":""} pendiente{historial[0].pagos.filter(p=>!p.done).length!==1?"s":""} de la última quincena</span>
             <span>→</span>
           </div>}
 
+          <div style={{order:ordenIdx("statsgrid"),display:esVisible("statsgrid")?undefined:"none"}}>
           <div className="stats-grid">
             {(()=>{
               const cajaMutualItem = [...fijos18,...fijos5].find(f=>f.destino==="mutual"&&f.cuotas?.activo);
@@ -1026,6 +1060,8 @@ function App() {
             ))}
           </div>
 
+          </div>
+          <div style={{order:ordenIdx("salud"),display:esVisible("salud")?undefined:"none"}}>
           {/* Salud financiera */}
           <div style={{...cardStyle,background:`linear-gradient(135deg,${C.navy},${C.navyLight})`,border:"1px solid rgba(255,255,255,0.09)",boxShadow:"0 12px 36px rgba(0,0,0,0.45)"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
@@ -1040,6 +1076,8 @@ function App() {
             ))}
           </div>
 
+          </div>
+          <div style={{order:ordenIdx("patrimonio"),display:esVisible("patrimonio")?undefined:"none"}}>
           {/* Patrimonio con gráfico */}
           <div style={{...cardStyle,background:`linear-gradient(135deg,${C.navy},${C.navyLight})`,border:"1px solid rgba(255,255,255,0.09)",boxShadow:"0 12px 36px rgba(0,0,0,0.45)"}}>
             <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.6)",letterSpacing:1.2,textTransform:"uppercase",marginBottom:10}}>Patrimonio neto</div>
@@ -1088,6 +1126,8 @@ function App() {
             ))}
           </div>
 
+          </div>
+          <div style={{order:ordenIdx("novedades"),display:esVisible("novedades")?undefined:"none"}}>
           {/* Novedades — se muestra una vez por cada cosa nueva, desaparece al cerrar */}
           {(()=>{
             const pendientes = NOVEDADES.filter(n=>!novedadesVistas.includes(n.id));
@@ -1108,6 +1148,8 @@ function App() {
             );
           })()}
 
+          </div>
+          <div style={{order:ordenIdx("racha"),display:esVisible("racha")?undefined:"none"}}>
           {/* Racha de ahorro */}
           {(()=>{
             let racha=0;
@@ -1126,6 +1168,8 @@ function App() {
             );
           })()}
 
+          </div>
+          <div style={{order:ordenIdx("ocio"),display:esVisible("ocio")?undefined:"none"}}>
           {/* Saldo de Ocio */}
           {(()=>{
             const oc = calcularSaldoOcio();
@@ -1148,6 +1192,8 @@ function App() {
             );
           })()}
 
+          </div>
+          <div style={{order:ordenIdx("estemes"),display:esVisible("estemes")?undefined:"none"}}>
           {/* Resumen del mes actual */}
 
           {(()=>{
@@ -1179,6 +1225,8 @@ function App() {
             );
           })()}
 
+          </div>
+          <div style={{order:ordenIdx("vencimientos"),display:esVisible("vencimientos")?undefined:"none"}}>
           {/* Próximos vencimientos */}
           {(()=>{
             const items = [
@@ -1205,6 +1253,8 @@ function App() {
             );
           })()}
 
+          </div>
+          <div style={{order:ordenIdx("metas"),display:esVisible("metas")?undefined:"none"}}>
           {/* Metas de proyecto */}
           {metasExtra.length>0&&(
             <div style={cardStyle}>
@@ -1237,6 +1287,8 @@ function App() {
             </div>
           )}
 
+          </div>
+          <div style={{order:ordenIdx("gastoreal"),display:esVisible("gastoreal")?undefined:"none"}}>
           {/* Gasto real vs estimado */}
           {(()=>{
             const conDatos = historial.filter(h=>h.gastoReal!==null&&h.gastoReal!==undefined);
@@ -1267,6 +1319,8 @@ function App() {
             );
           })()}
 
+          </div>
+          <div style={{order:ordenIdx("comparativo"),display:esVisible("comparativo")?undefined:"none"}}>
           {/* Comparativo vs quincena anterior */}
           {historial.length>=2&&(()=>{
             const actual=historial[0], anterior=historial[1];
@@ -1293,6 +1347,8 @@ function App() {
             );
           })()}
 
+          </div>
+          <div style={{order:ordenIdx("promedio"),display:esVisible("promedio")?undefined:"none"}}>
           {/* Promedio de ahorro mensual */}
           {historial.length>0&&(()=>{
             const mesesMap={};
@@ -1308,6 +1364,8 @@ function App() {
             );
           })()}
 
+          </div>
+          <div style={{order:ordenIdx("progresodeudas"),display:esVisible("progresodeudas")?undefined:"none"}}>
           {/* Resumen de progreso de deudas */}
           {todosConCuotas.length>0&&(
             <div style={cardStyle}>
@@ -1329,6 +1387,8 @@ function App() {
             </div>
           )}
 
+          </div>
+          <div style={{order:ordenIdx("grafico3m"),display:esVisible("grafico3m")?undefined:"none"}}>
           {/* Gráfico rápido últimos 3 meses / desglose si es un solo mes */}
           {(()=>{
             const lim3=new Date(); lim3.setMonth(lim3.getMonth()-3);
@@ -1380,7 +1440,8 @@ function App() {
               </div>
             );
           })()}
-        </>}
+          </div>
+        </div>}
 
         {tab==="calc"&&<>
           <div style={cardStyle}>
@@ -2037,7 +2098,7 @@ function App() {
 
         {tab==="config"&&<>
           <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
-            {[{id:"pagos",label:"Pagos"},{id:"vars",label:"Variables"},{id:"cuentas",label:"Cuentas"},{id:"meta",label:"Metas"},{id:"perfil",label:"Perfil"},{id:"backup",label:"Respaldo"}].map(tb=>(
+            {[{id:"pagos",label:"Pagos"},{id:"vars",label:"Variables"},{id:"cuentas",label:"Cuentas"},{id:"meta",label:"Metas"},{id:"orden",label:"Orden Inicio"},{id:"perfil",label:"Perfil"},{id:"backup",label:"Respaldo"}].map(tb=>(
               <button key={tb.id} onClick={()=>setSubTabC(tb.id)} style={{flex:1,minWidth:70,padding:"10px 4px",borderRadius:11,border:`1.5px solid ${subTabC===tb.id?C.accentDeep:C.cardBorder}`,background:subTabC===tb.id?C.accentSoft:C.card,color:subTabC===tb.id?C.accentDeep:C.muted,fontSize:11,fontWeight:subTabC===tb.id?800:500,cursor:"pointer"}}>{tb.label}</button>
             ))}
           </div>
@@ -2247,6 +2308,26 @@ function App() {
             }} style={{width:"100%",padding:"11px 0",background:"transparent",border:`1.5px dashed ${C.cardBorder}`,borderRadius:10,color:C.accentDeep,fontSize:12,cursor:"pointer",fontWeight:600}}>+ Agregar meta de proyecto</button>
           </div>
           </>}
+
+          {subTabC==="orden"&&<div style={cardStyle}>
+            <div style={{...sectionTitle,marginBottom:6}}>Orden de tarjetas en Inicio</div>
+            <div style={{fontSize:12,color:C.muted,marginBottom:16,fontWeight:500}}>Usá las flechas para reordenar, y el ojo para ocultar tarjetas que no uses. Se guarda solo en este dispositivo.</div>
+            {inicioOrden.map((c,i)=>{
+              const info = INICIO_CARDS.find(x=>x.id===c.id);
+              if(!info) return null;
+              return(
+                <div key={c.id} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 0",borderBottom:i<inicioOrden.length-1?`1px solid ${C.divider}`:"none",opacity:c.visible?1:0.45}}>
+                  <div style={{display:"flex",flexDirection:"column",gap:2}}>
+                    <button onClick={()=>moverCard(c.id,-1)} disabled={i===0} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:6,width:26,height:22,color:i===0?C.mutedLight:C.text,cursor:i===0?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",opacity:i===0?0.4:1}}>▲</button>
+                    <button onClick={()=>moverCard(c.id,1)} disabled={i===inicioOrden.length-1} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:6,width:26,height:22,color:i===inicioOrden.length-1?C.mutedLight:C.text,cursor:i===inicioOrden.length-1?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",opacity:i===inicioOrden.length-1?0.4:1}}>▼</button>
+                  </div>
+                  <div style={{flex:1,fontSize:13,fontWeight:600}}>{info.label}</div>
+                  <button onClick={()=>toggleCardVisible(c.id)} style={{background:"transparent",border:"none",cursor:"pointer",color:c.visible?C.accentDeep:C.mutedLight,padding:6,display:"flex"}}><NavIcon name={c.visible?"eye":"eyeOff"} size={17} strokeWidth={1.8}/></button>
+                </div>
+              );
+            })}
+            <button onClick={()=>{setInicioOrden(INICIO_CARDS.map(c=>({id:c.id,visible:true})));tk("✓ Orden restaurado");}} style={{width:"100%",marginTop:15,padding:"11px 0",background:"transparent",border:`1.5px solid ${C.cardBorder}`,borderRadius:11,color:C.muted,fontSize:12,cursor:"pointer",fontWeight:600}}>Restaurar orden original</button>
+          </div>}
 
           {subTabC==="perfil"&&<div style={cardStyle}>
             <div style={{...sectionTitle,marginBottom:6}}>Perfil del usuario</div>
