@@ -17,7 +17,7 @@
 </style>
 <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<script crossorigin src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
 </head>
 <body>
 <div id="jserror"></div>
@@ -908,6 +908,8 @@ function App() {
               </div>
               <div style={{fontSize:16,fontWeight:700,color:C.white}}>Hola, {perfil.nombre}</div>
             </div>
+          </div>
+
           <div style={{marginBottom:16,position:"relative"}}>
             <div style={{fontSize:10,color:C.muted,marginBottom:5,fontWeight:700,letterSpacing:0.6,textTransform:"uppercase"}}>Total ahorrado en {cn("ahorro")}</div>
             <div style={{display:"flex",alignItems:"center",gap:12}}>
