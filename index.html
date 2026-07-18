@@ -39,7 +39,7 @@ async function sSet(k, v) {
   catch (err) { try{ window.dispatchEvent(new CustomEvent("finanzas-storage-error",{detail:err&&err.name})); }catch{} return false; }
 }
 
-const APP_VERSION = "1.5";
+const APP_VERSION = "1.6";
 const NOVEDADES = [
   // Agregá acá cada cosa nueva. El "id" tiene que ser único y no repetirse nunca.
   { id:"nv1", titulo:"Saldo de Ocio", texto:"Ahora podés ver cuánto te queda disponible para gastar en Ocio, acumulado mes a mes." },
@@ -128,7 +128,15 @@ const ICONS = {
   home: <><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1H9a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h2.5a1 1 0 0 0 1-1v-9"/></>,
   list: <><rect x="4" y="4" width="16" height="16" rx="2.5"/><path d="M8 9h8M8 12h8M8 15h5"/></>,
   chart: <><path d="M4 20V10"/><path d="M11 20V4"/><path d="M18 20v-7"/></>,
-  gear: <><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></>,
+  gear: <><path d="M10.3 2.6a1.7 1.7 0 0 1 3.4 0l.2 1.1a7.6 7.6 0 0 1 1.7.7l1-.6a1.7 1.7 0 0 1 2.4 2.4l-.6 1a7.6 7.6 0 0 1 .7 1.7l1.1.2a1.7 1.7 0 0 1 0 3.4l-1.1.2a7.6 7.6 0 0 1-.7 1.7l.6 1a1.7 1.7 0 0 1-2.4 2.4l-1-.6a7.6 7.6 0 0 1-1.7.7l-.2 1.1a1.7 1.7 0 0 1-3.4 0l-.2-1.1a7.6 7.6 0 0 1-1.7-.7l-1 .6a1.7 1.7 0 0 1-2.4-2.4l.6-1a7.6 7.6 0 0 1-.7-1.7l-1.1-.2a1.7 1.7 0 0 1 0-3.4l1.1-.2a7.6 7.6 0 0 1 .7-1.7l-.6-1a1.7 1.7 0 0 1 2.4-2.4l1 .6a7.6 7.6 0 0 1 1.7-.7Z"/><circle cx="12" cy="12" r="3"/></>,
+  target: <><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></>,
+  calendar: <><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M3.5 9.5h17M8 3v3.5M16 3v3.5"/></>,
+  bank: <><path d="M3 21h18M4 21V10M20 21V10M2 10l10-6 10 6M7 10v6M12 10v6M17 10v6"/></>,
+  pencil: <><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3Z"/><path d="M13.5 6.5l3 3"/></>,
+  alertTriangle: <><path d="M12 3.5 21 19H3L12 3.5Z"/><path d="M12 9.5v4.5M12 17h.01"/></>,
+  checkCircle: <><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.3l2.3 2.3 4.7-5"/></>,
+  wallet: <><rect x="3" y="6.5" width="18" height="13" rx="2"/><path d="M3 10h18M16 14.5h1.5"/></>,
+  plusCircle: <><circle cx="12" cy="12" r="8.5"/><path d="M12 8.3v7.4M8.3 12h7.4"/></>,
   bell: <><path d="M6 9a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 13 6 9Z"/><path d="M10 19a2 2 0 0 0 4 0"/></>,
   plus: <path d="M12 5v14M5 12h14"/>,
 };
@@ -1001,20 +1009,6 @@ function App() {
             <span>→</span>
           </div>}
 
-          {/* Salud financiera */}
-          <div style={{...cardStyle,background:`linear-gradient(135deg,${C.navy},${C.navyLight})`,border:"1px solid rgba(255,255,255,0.09)",boxShadow:"0 12px 36px rgba(0,0,0,0.45)"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-              <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.6)",letterSpacing:1.2,textTransform:"uppercase"}}>Salud financiera</div>
-              <div style={{fontSize:24,fontWeight:800,color:saludFinanciera.color,fontFamily:"monospace"}}>{saludFinanciera.score}/100</div>
-            </div>
-            <div style={{fontSize:14,fontWeight:700,color:saludFinanciera.color,marginBottom:12}}>{saludFinanciera.nivel}</div>
-            {saludFinanciera.checks.map((c,i)=>(
-              <div key={i} style={{display:"flex",gap:8,alignItems:"center",padding:"5px 0",fontSize:12,color:"rgba(255,255,255,0.85)"}}>
-                <span>{c.ok===true?"✔️":c.ok===false?"⚠️":"➖"}</span><span>{c.label}</span>
-              </div>
-            ))}
-          </div>
-
           <div className="stats-grid">
             {(()=>{
               const cajaMutualItem = [...fijos18,...fijos5].find(f=>f.destino==="mutual"&&f.cuotas?.activo);
@@ -1024,16 +1018,30 @@ function App() {
               const totalExtrasMonto = extrasReg.filter(e=>e.destino!=="quincena").reduce((a,e)=>a+(e.monto||0),0);
               const ocioSaldo = calcularSaldoOcio().saldo;
               return [
-                {label:"Promedio/quincena",value:fmt(promedioAhorroQ),icon:"📊",color:C.accentDeep},
-                {label:"Total ingresos extra",value:fmt(totalExtrasMonto),icon:"➕",color:C.purple},
-                {label:"Saldo Ocio",value:fmt(ocioSaldo),icon:"🎮",color:C.warn},
-                {label:`→ ${cn("mutual")}`,value:fmt(acumMutualReal),icon:"🏦",color:C.info},
+                {label:"Promedio/quincena",value:fmt(promedioAhorroQ),icon:"chart",color:C.accentDeep},
+                {label:"Total ingresos extra",value:fmt(totalExtrasMonto),icon:"plusCircle",color:C.purple},
+                {label:"Saldo Ocio",value:fmt(ocioSaldo),icon:"wallet",color:C.warn},
+                {label:`→ ${cn("mutual")}`,value:fmt(acumMutualReal),icon:"bank",color:C.info},
               ];
             })().map((c,i)=>(
               <div key={i} style={{...cardStyle,padding:16,marginBottom:0}}>
-                <div style={{fontSize:20,marginBottom:8}}>{c.icon}</div>
-                <div style={{fontSize:15,fontWeight:800,color:c.color,fontFamily:"monospace",letterSpacing:-0.3}}>{c.value}</div>
-                <div style={{fontSize:11,color:C.muted,marginTop:4,fontWeight:500}}>{c.label}</div>
+                <div style={{marginBottom:9,color:c.color}}><NavIcon name={c.icon} size={19} strokeWidth={1.7}/></div>
+                <div style={{fontSize:17,fontWeight:800,color:c.color,fontFamily:"monospace",letterSpacing:-0.3}}>{c.value}</div>
+                <div style={{fontSize:10,color:C.muted,marginTop:4,fontWeight:600}}>{c.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Salud financiera */}
+          <div style={{...cardStyle,background:`linear-gradient(135deg,${C.navy},${C.navyLight})`,border:"1px solid rgba(255,255,255,0.09)",boxShadow:"0 12px 36px rgba(0,0,0,0.45)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.6)",letterSpacing:1.2,textTransform:"uppercase"}}>Salud financiera</div>
+              <div style={{fontSize:24,fontWeight:800,color:saludFinanciera.color,fontFamily:"monospace"}}>{saludFinanciera.score}/100</div>
+            </div>
+            <div style={{fontSize:14,fontWeight:700,color:saludFinanciera.color,marginBottom:12}}>{saludFinanciera.nivel}</div>
+            {saludFinanciera.checks.map((c,i)=>(
+              <div key={i} style={{display:"flex",gap:8,alignItems:"center",padding:"5px 0",fontSize:12,color:"rgba(255,255,255,0.85)"}}>
+                <span style={{color:c.ok===true?C.accent:c.ok===false?C.warn:C.mutedLight,flexShrink:0,display:"flex"}}><NavIcon name={c.ok===true?"checkCircle":"alertTriangle"} size={15} strokeWidth={2}/></span><span>{c.label}</span>
               </div>
             ))}
           </div>
@@ -1555,7 +1563,7 @@ function App() {
                     {(!f.cuotas.total||f.cuotas.pagadas<f.cuotas.total)&&
                       <button onClick={e=>{e.stopPropagation();setList(list.map(x=>x.id===f.id?{...x,cuotas:{...x.cuotas,pagadas:x.cuotas.pagadas+1}}:x));tk("✓ +1 cuota");}} title="Marcar +1 cuota pagada" style={{background:C.accentSoft,border:"none",borderRadius:8,width:34,height:34,fontSize:15,color:C.accentDeep,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✓</button>
                     }
-                    <button onClick={e=>{e.stopPropagation();setEditCuotas(isEditing?null:key);}} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:8,width:34,height:34,fontSize:14,color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✏️</button>
+                    <button onClick={e=>{e.stopPropagation();setEditCuotas(isEditing?null:key);}} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:8,width:34,height:34,fontSize:14,color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
                     <span style={{color:C.mutedLight,fontSize:12}}>{isExpanded?"▲":"▼"}</span>
                   </div>
                 </div>
@@ -1692,7 +1700,7 @@ function App() {
                   </div>
                   <div style={{display:"flex",gap:6,flexShrink:0,alignItems:"center"}}>
                     {!completo&&<button onClick={e=>{e.stopPropagation();setShowMarcarCobro(p.id);setCuentaCobroSeleccionada("ahorro");setMontoCobroInput("");setPrestamoExpandido(p.id);}} title="Marcar cuota cobrada" style={{background:C.accentSoft,border:"none",borderRadius:8,width:34,height:34,fontSize:15,color:C.accentDeep,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✓</button>}
-                    <button onClick={e=>{e.stopPropagation();setEditCuotasPrestamo(isEditing?null:p.id);setPrestamoExpandido(p.id);}} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:8,width:34,height:34,fontSize:14,color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✏️</button>
+                    <button onClick={e=>{e.stopPropagation();setEditCuotasPrestamo(isEditing?null:p.id);setPrestamoExpandido(p.id);}} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:8,width:34,height:34,fontSize:14,color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
                     <button onClick={e=>{e.stopPropagation();if(window.confirm("¿Eliminar este préstamo? Se pierde todo el historial de cobros.")){setPrestamosDados(pr=>pr.filter(x=>x.id!==p.id));tk("Eliminado");}}} style={{background:C.dangerSoft,border:"none",borderRadius:8,width:34,height:34,fontSize:14,color:C.danger,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
                     <span style={{color:C.mutedLight,fontSize:12,marginLeft:2}}>{isExpanded?"▲":"▼"}</span>
                   </div>
@@ -2063,7 +2071,7 @@ function App() {
                           <div style={{fontSize:13,fontWeight:600}}>{f.label}</div>
                           <div style={{fontSize:11,color:C.muted,fontFamily:"monospace"}}>{fmt(f.monto)}{f.cuotas?.activo?` · ${f.cuotas.pagadas}${f.cuotas.total?`/${f.cuotas.total}`:""} cuotas`:""}</div>
                         </div>
-                        <button onClick={()=>setEditando(f.id)} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:8,padding:"6px 11px",fontSize:11,color:C.muted,cursor:"pointer"}}>✏️</button>
+                        <button onClick={()=>setEditando(f.id)} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:8,padding:"6px 11px",fontSize:11,color:C.muted,cursor:"pointer"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
                         <button onClick={()=>{if(window.confirm("¿Eliminar este pago fijo?")){setList(list.filter(x=>x.id!==f.id));tk("Eliminado");}}} style={{background:C.dangerSoft,border:"none",borderRadius:8,padding:"6px 10px",fontSize:11,color:C.danger,cursor:"pointer"}}>✕</button>
                       </>}
                     </div>
@@ -2098,7 +2106,7 @@ function App() {
                   </div>
                 </div>:<>
                   <div style={{flex:1}}><div style={{fontSize:13,fontWeight:600}}>{v.label}</div><div style={{fontSize:11,color:C.muted,fontFamily:"monospace"}}>{fmt(v.monto)}</div></div>
-                  <button onClick={()=>setEditando(`v${v.id}`)} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:8,padding:"6px 11px",fontSize:11,color:C.muted,cursor:"pointer"}}>✏️</button>
+                  <button onClick={()=>setEditando(`v${v.id}`)} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:8,padding:"6px 11px",fontSize:11,color:C.muted,cursor:"pointer"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
                   <button onClick={()=>{if(window.confirm("¿Eliminar este gasto variable?")){setVars(vars.filter(x=>x.id!==v.id));tk("Eliminado");}}} style={{background:C.dangerSoft,border:"none",borderRadius:8,padding:"6px 10px",fontSize:11,color:C.danger,cursor:"pointer"}}>✕</button>
                 </>}
               </div>
@@ -2121,7 +2129,7 @@ function App() {
                   <button onClick={()=>setEditCuenta(null)} style={{padding:"9px 11px",background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:9,color:C.muted,fontSize:12,cursor:"pointer"}}>✕</button>
                 </div>:<>
                   <div style={{flex:1}}><div style={{fontSize:14,fontWeight:800,color:c.color}}>{cn(c.key)}</div><div style={{fontSize:11,color:C.muted}}>{c.rol}</div></div>
-                  <button onClick={()=>setEditCuenta(c.key)} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:8,padding:"6px 11px",fontSize:11,color:C.muted,cursor:"pointer"}}>✏️</button>
+                  <button onClick={()=>setEditCuenta(c.key)} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:8,padding:"6px 11px",fontSize:11,color:C.muted,cursor:"pointer"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
                 </>}
               </div>
             ))}
@@ -2142,7 +2150,7 @@ function App() {
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div style={{fontSize:18,fontWeight:800,fontFamily:"monospace",color:ahorroInicial?C.accent:C.muted}}>{ahorroInicial?fmt(ahorroInicial):"Sin cargar"}</div>
                 <div style={{display:"flex",gap:6}}>
-                  <button onClick={()=>{setAhorroInicialInput(ahorroInicial?new Intl.NumberFormat("es-PY").format(ahorroInicial):"");setEditAhorroInicial(true);}} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:8,width:34,height:34,fontSize:15,color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✏️</button>
+                  <button onClick={()=>{setAhorroInicialInput(ahorroInicial?new Intl.NumberFormat("es-PY").format(ahorroInicial):"");setEditAhorroInicial(true);}} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:8,width:34,height:34,fontSize:15,color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
                   {ahorroInicial>0&&<button onClick={()=>{if(window.confirm("¿Eliminar el ahorro inicial cargado? Esto resta ese monto de tu total.")){setAhorroInicial(0);tk("Ahorro inicial eliminado");}}} style={{background:C.dangerSoft,border:"none",borderRadius:8,width:34,height:34,fontSize:15,color:C.danger,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>🗑️</button>}
                 </div>
               </div>
@@ -2165,7 +2173,7 @@ function App() {
                   <div style={{fontSize:16,fontWeight:800,fontFamily:"monospace",color:ganaderiaInicial?C.gold:C.muted}}>{ganaderiaInicial?fmt(ganaderiaInicial):"Sin cargar"}</div>
                 </div>
                 <div style={{display:"flex",gap:6}}>
-                  <button onClick={()=>{setGanaderiaInicialInput(ganaderiaInicial?new Intl.NumberFormat("es-PY").format(ganaderiaInicial):"");setEditGanaderiaInicial(true);}} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:8,width:34,height:34,fontSize:15,color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✏️</button>
+                  <button onClick={()=>{setGanaderiaInicialInput(ganaderiaInicial?new Intl.NumberFormat("es-PY").format(ganaderiaInicial):"");setEditGanaderiaInicial(true);}} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:8,width:34,height:34,fontSize:15,color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
                   {ganaderiaInicial>0&&<button onClick={()=>{if(window.confirm("¿Eliminar el monto inicial de ganadería?")){setGanaderiaInicial(0);tk("Eliminado");}}} style={{background:C.dangerSoft,border:"none",borderRadius:8,width:34,height:34,fontSize:15,color:C.danger,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>🗑️</button>}
                 </div>
               </div>
@@ -2189,7 +2197,7 @@ function App() {
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div style={{fontSize:18,fontWeight:800,fontFamily:"monospace",color:meta?C.accent:C.muted}}>{meta?fmt(meta):"Sin meta configurada"}</div>
                 <div style={{display:"flex",gap:6}}>
-                  <button onClick={()=>{setMetaInput(meta?new Intl.NumberFormat("es-PY").format(meta):"");setEditMetaGeneral(true);}} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:8,width:34,height:34,fontSize:15,color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✏️</button>
+                  <button onClick={()=>{setMetaInput(meta?new Intl.NumberFormat("es-PY").format(meta):"");setEditMetaGeneral(true);}} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:8,width:34,height:34,fontSize:15,color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
                   {meta&&<button onClick={()=>{if(window.confirm("¿Eliminar la meta general de ahorro?")){setMeta(null);tk("Meta eliminada");}}} style={{background:C.dangerSoft,border:"none",borderRadius:8,width:34,height:34,fontSize:15,color:C.danger,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>🗑️</button>}
                 </div>
               </div>
@@ -2224,7 +2232,7 @@ function App() {
                       <div style={{fontSize:11,color:C.muted,fontFamily:"monospace"}}>{fmt(c.acumulado)} / {fmt(c.objetivo)}{m.fecha?` · hasta ${m.fecha}`:""}</div>
                     </div>
                     <div style={{display:"flex",gap:6}}>
-                      <button onClick={()=>setEditMetaExtra(m.id)} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:7,padding:"5px 10px",fontSize:11,color:C.muted,cursor:"pointer"}}>✏️</button>
+                      <button onClick={()=>setEditMetaExtra(m.id)} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:7,padding:"5px 10px",fontSize:11,color:C.muted,cursor:"pointer"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
                       <button onClick={()=>{if(window.confirm("¿Eliminar esta meta? Se pierden los aportes registrados.")){setMetasExtra(metasExtra.filter(x=>x.id!==m.id));tk("Meta eliminada");}}} style={{background:C.dangerSoft,border:"none",borderRadius:7,padding:"5px 9px",fontSize:11,color:C.danger,cursor:"pointer"}}>✕</button>
                     </div>
                   </div>
@@ -2272,7 +2280,7 @@ function App() {
                 <div style={{width:48,height:48,borderRadius:"50%",background:C.accentSoft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:800,color:C.accentDeep,border:`1.5px solid #a7e8c5`}}>{perfil.iniciales}</div>
                 <div style={{fontSize:16,fontWeight:800}}>{perfil.nombre}</div>
               </div>
-              <button onClick={()=>setEditPerfil(true)} style={{width:"100%",padding:"12px 0",background:C.accentSoft,border:"none",borderRadius:11,color:C.accentDeep,fontWeight:700,fontSize:13,cursor:"pointer"}}>✏️ Editar perfil</button>
+              <button onClick={()=>setEditPerfil(true)} style={{width:"100%",padding:"12px 0",background:C.accentSoft,border:"none",borderRadius:11,color:C.accentDeep,fontWeight:700,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:7}}><NavIcon name="pencil" size={14} strokeWidth={2}/> Editar perfil</button>
             </>}
           </div>}
 
