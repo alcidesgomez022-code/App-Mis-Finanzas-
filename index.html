@@ -39,7 +39,7 @@ async function sSet(k, v) {
   catch (err) { try{ window.dispatchEvent(new CustomEvent("finanzas-storage-error",{detail:err&&err.name})); }catch{} return false; }
 }
 
-const APP_VERSION = "2.1";
+const APP_VERSION = "2.2";
 const NOVEDADES = [
   // Agregá acá cada cosa nueva. El "id" tiene que ser único y no repetirse nunca.
   { id:"nv1", titulo:"Saldo de Ocio", texto:"Ahora podés ver cuánto te queda disponible para gastar en Ocio, acumulado mes a mes." },
@@ -48,6 +48,7 @@ const NOVEDADES = [
   { id:"nv4", titulo:"Nuevo look", texto:"Rediseño visual: íconos más finos, colores más cuidados, y tarjetas con más profundidad para que se sienta más profesional." },
   { id:"nv5", titulo:"Perfil rápido", texto:"Tocá el círculo de tu iniciales en Inicio para ver tu perfil y editarlo, sin ir a Config. También sacamos la campanita — mostraba info duplicada." },
   { id:"nv6", titulo:"Ordená tu Inicio", texto:"En Config → Orden Inicio podés reordenar y ocultar las tarjetas de tu pantalla principal como más te sirva." },
+  { id:"nv7", titulo:"Fecha propia por pago", texto:"Cada pago fijo ahora puede tener su propia fecha de vencimiento (Config → Pagos). Solo se marca como atrasado si ya pasó SU fecha, no la de toda la quincena." },
 ];
 const D_CUENTAS = { cerebro:"EKO", operativa:"Itaú", credito:"Ueno", ahorro:"Continental", ganaderia:"Mango", mutual:"Caja Mutual" };
 const INICIO_CARDS = [
@@ -68,16 +69,16 @@ const INICIO_CARDS = [
 ];
 
 const D18 = [
-  { id:1, label:"Pago fijo 1", monto:300000, destino:"Banco", activo:true, cuotas:{ activo:true, pagadas:0, total:12 } },
-  { id:2, label:"Servicio 1", monto:50000, destino:"Servicio", activo:true, cuotas:null },
-  { id:3, label:"Servicio 2", monto:50000, destino:"Servicio", activo:true, cuotas:null },
-  { id:4, label:"Ganadería", monto:100000, destino:"ganaderia", activo:true, cuotas:null },
+  { id:1, label:"Pago fijo 1", monto:300000, destino:"Banco", activo:true, cuotas:{ activo:true, pagadas:0, total:12 }, diaVenc:18 },
+  { id:2, label:"Servicio 1", monto:50000, destino:"Servicio", activo:true, cuotas:null, diaVenc:18 },
+  { id:3, label:"Servicio 2", monto:50000, destino:"Servicio", activo:true, cuotas:null, diaVenc:18 },
+  { id:4, label:"Ganadería", monto:100000, destino:"ganaderia", activo:true, cuotas:null, diaVenc:18 },
 ];
 const D5 = [
-  { id:5, label:"Pago fijo 2", monto:300000, destino:"Banco", activo:true, cuotas:null },
-  { id:6, label:"Pago fijo 3", monto:300000, destino:"Banco", activo:true, cuotas:{ activo:true, pagadas:0, total:24 } },
-  { id:7, label:"Ganadería", monto:100000, destino:"ganaderia", activo:true, cuotas:null },
-  { id:8, label:"Caja Mutual", monto:100000, destino:"mutual", activo:true, cuotas:{ activo:true, pagadas:0, total:null } },
+  { id:5, label:"Pago fijo 2", monto:300000, destino:"Banco", activo:true, cuotas:null, diaVenc:5 },
+  { id:6, label:"Pago fijo 3", monto:300000, destino:"Banco", activo:true, cuotas:{ activo:true, pagadas:0, total:24 }, diaVenc:5 },
+  { id:7, label:"Ganadería", monto:100000, destino:"ganaderia", activo:true, cuotas:null, diaVenc:5 },
+  { id:8, label:"Caja Mutual", monto:100000, destino:"mutual", activo:true, cuotas:{ activo:true, pagadas:0, total:null }, diaVenc:5 },
 ];
 const DV = [
   { id:1, label:"Combustible", monto:100000, destino:"operativa" },
@@ -88,6 +89,12 @@ const DV = [
 function fmt(n) { if (!n && n!==0) return "—"; return new Intl.NumberFormat("es-PY").format(Math.round(n))+" Gs."; }
 function hoyLocal(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function parseFechaPY(f){ const p=f?.split("/"); if(!p||p.length!==3) return new Date(0); return new Date(p[2],p[1]-1,p[0],12); }
+function pagoAtrasado(pago, fechaQuincena){
+  const p = fechaQuincena?.split("/"); if(!p||p.length!==3) return false;
+  const dia = pago?.diaVenc || Number(p[0]);
+  const venc = new Date(Number(p[2]), Number(p[1])-1, dia, 23, 59, 59);
+  return new Date() > venc;
+}
 function haptic(ms=8){ try{ navigator.vibrate && navigator.vibrate(ms); }catch{} }
 function parseISO(iso){ const [y,m,d]=iso.split("-").map(Number); return {y,m,d}; }
 function buildISO(y,m,d){ return `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`; }
@@ -434,8 +441,7 @@ function App() {
     if(ratioDeuda<0.5){ score+=20; checks.push({ok:true,label:"Endeudamiento controlado"}); }
     else if(ratioDeuda<1){ score+=5; checks.push({ok:null,label:"Endeudamiento moderado"}); }
     else { score-=15; checks.push({ok:false,label:"Deuda alta respecto a tus activos"}); }
-    const yaVencioUltima = historial[0] ? new Date()>parseFechaPY(historial[0].fecha) : false;
-    const pendientesUltima = (historial[0]?.pagos && yaVencioUltima) ? historial[0].pagos.filter(p=>!p.done).length : 0;
+    const pendientesUltima = historial[0]?.pagos ? historial[0].pagos.filter(p=>!p.done && pagoAtrasado(p, historial[0].fecha)).length : 0;
     if(historial.length>0 && pendientesUltima===0){ score+=10; checks.push({ok:true,label:"Pagos al día"}); }
     else if(pendientesUltima>0){ score-=10; checks.push({ok:false,label:pendientesUltima+" pago(s) atrasado(s)"}); }
     if(historial.length>0){
@@ -561,11 +567,12 @@ function App() {
   function guardar(){
     haptic(15);
     if(!resultado) return;
+    const diaBase = resultado.quincena==="18"?18:5;
     const pagosChecklist = [
-      ...resultado.fijosActivos.map(p=>({label:p.label,monto:p.monto,sub:`${cn("cerebro")} → ${destinoLabel(p.destino)}`,done:!!checklist[resultado.fijosActivos.indexOf(p)]})),
-      {label:`Variables → ${cn("operativa")}`,monto:resultado.totalVars,sub:`Transferir a ${cn("operativa")}`,done:!!checklist[resultado.fijosActivos.length]},
-      {label:`Ahorro → ${cn("ahorro")}`,monto:resultado.dist.ahorro,sub:`Transferir a ${cn("ahorro")}`,done:!!checklist[resultado.fijosActivos.length+1]},
-      ...(resultado.dist.ocio>0?[{label:"Ocio",monto:resultado.dist.ocio,sub:"Disponible",done:!!checklist[resultado.fijosActivos.length+2]}]:[]),
+      ...resultado.fijosActivos.map(p=>({label:p.label,monto:p.monto,sub:`${cn("cerebro")} → ${destinoLabel(p.destino)}`,done:!!checklist[resultado.fijosActivos.indexOf(p)],diaVenc:p.diaVenc||diaBase})),
+      {label:`Variables → ${cn("operativa")}`,monto:resultado.totalVars,sub:`Transferir a ${cn("operativa")}`,done:!!checklist[resultado.fijosActivos.length],diaVenc:diaBase},
+      {label:`Ahorro → ${cn("ahorro")}`,monto:resultado.dist.ahorro,sub:`Transferir a ${cn("ahorro")}`,done:!!checklist[resultado.fijosActivos.length+1],diaVenc:diaBase},
+      ...(resultado.dist.ocio>0?[{label:"Ocio",monto:resultado.dist.ocio,sub:"Disponible",done:!!checklist[resultado.fijosActivos.length+2],diaVenc:diaBase}]:[]),
     ];
     const entry={id:Date.now(),fecha:resultado.fecha,quincena:resultado.quincena,sueldo:resultado.s,extra:resultado.ex,total:resultado.total,ahorro:resultado.dist.ahorro,ocio:resultado.dist.ocio,emergencia:resultado.dist.emergencia,pagos:pagosChecklist,gastoReal:gastoRealInput?Number(soloDigitos(gastoRealInput)):null,gastoEstimado:totalVarsN};
     setHistorial(h=>[entry,...h].slice(0,48));
@@ -1033,8 +1040,8 @@ function App() {
       <div className="main-content" style={{padding:"14px 16px 90px"}}>
 
         {tab==="inicio"&&<div style={{display:"flex",flexDirection:"column"}}>
-          {historial[0]?.pagos&&historial[0].pagos.some(p=>!p.done)&&new Date()>parseFechaPY(historial[0].fecha)&&<div onClick={()=>{setTab("historial");setSubTabH("quincena");}} style={{background:C.warnSoft,border:`1px solid #f3d49a`,borderRadius:14,padding:"13px 16px",marginBottom:14,fontSize:13,color:C.warn,fontWeight:600,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span>⏳ Tenés {historial[0].pagos.filter(p=>!p.done).length} pago{historial[0].pagos.filter(p=>!p.done).length!==1?"s":""} atrasado{historial[0].pagos.filter(p=>!p.done).length!==1?"s":""} de la última quincena</span>
+          {historial[0]?.pagos&&historial[0].pagos.some(p=>!p.done&&pagoAtrasado(p,historial[0].fecha))&&<div onClick={()=>{setTab("historial");setSubTabH("quincena");}} style={{background:C.warnSoft,border:`1px solid #f3d49a`,borderRadius:14,padding:"13px 16px",marginBottom:14,fontSize:13,color:C.warn,fontWeight:600,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span>⏳ Tenés {historial[0].pagos.filter(p=>!p.done&&pagoAtrasado(p,historial[0].fecha)).length} pago{historial[0].pagos.filter(p=>!p.done&&pagoAtrasado(p,historial[0].fecha)).length!==1?"s":""} atrasado{historial[0].pagos.filter(p=>!p.done&&pagoAtrasado(p,historial[0].fecha)).length!==1?"s":""} de la última quincena</span>
             <span>→</span>
           </div>}
 
@@ -1965,7 +1972,7 @@ function App() {
               </div>
             </div>}
             {histF.map(h=>{
-              const pendientes = h.pagos?h.pagos.filter(p=>!p.done).length:0;
+              const pendientes = h.pagos?h.pagos.filter(p=>!p.done&&pagoAtrasado(p,h.fecha)).length:0;
               return(
               <div key={h.id} style={cardStyle}>
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
@@ -1983,7 +1990,7 @@ function App() {
                 {h.pagos&&<div style={{borderTop:`1px solid ${C.divider}`,paddingTop:10}}>
                   <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
                     <span style={{fontSize:11,color:C.muted,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase"}}>Checklist de pagos</span>
-                    {pendientes>0?<span style={{fontSize:11,color:C.warn,fontWeight:700}}>{pendientes} pendiente{pendientes!==1?"s":""}</span>:<span style={{fontSize:11,color:C.accentDeep,fontWeight:700}}>✓ Todo pagado</span>}
+                    {pendientes>0?<span style={{fontSize:11,color:C.warn,fontWeight:700}}>{pendientes} atrasado{pendientes!==1?"s":""}</span>:<span style={{fontSize:11,color:C.accentDeep,fontWeight:700}}>✓ Todo pagado</span>}
                   </div>
                   {h.pagos.map((p,i)=>(
                     <div key={i} onClick={()=>toggleChecklistHistorial(h.id,i)} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 0",cursor:"pointer"}}>
@@ -2107,9 +2114,9 @@ function App() {
 
           {subTabC==="pagos"&&<>
             {[
-              {label:"Pagos fijos — Día 18",list:fijos18,setList:setFijos18,nuevoS:nuevo18,setNuevo:setNuevo18},
-              {label:"Pagos fijos — Día 5",list:fijos5,setList:setFijos5,nuevoS:nuevo5,setNuevo:setNuevo5},
-            ].map(({label,list,setList,nuevoS,setNuevo})=>(
+              {label:"Pagos fijos — Día 18",list:fijos18,setList:setFijos18,nuevoS:nuevo18,setNuevo:setNuevo18,diaDefault:18},
+              {label:"Pagos fijos — Día 5",list:fijos5,setList:setFijos5,nuevoS:nuevo5,setNuevo:setNuevo5,diaDefault:5},
+            ].map(({label,list,setList,nuevoS,setNuevo,diaDefault})=>(
               <div key={label} style={cardStyle}>
                 <div style={sectionTitle}>{label}</div>
                 {list.filter(f=>f.activo).map(f=>(
@@ -2119,14 +2126,18 @@ function App() {
                       {editando===f.id?<div style={{flex:1,display:"flex",flexDirection:"column",gap:7}}>
                         <input defaultValue={f.label} id={`el-${f.id}`} style={{...inp,fontSize:13}}/>
                         <input id={`em-${f.id}`} type="text" inputMode="numeric" defaultValue={new Intl.NumberFormat("es-PY").format(f.monto)} onChange={e=>{e.target.value=formatearMientrasEscribe(e.target.value);}} style={{...inp,fontSize:13,fontFamily:"monospace"}}/>
+                        <div>
+                          <div style={{fontSize:10,color:C.muted,marginBottom:4,fontWeight:600}}>Vence el día (1-31) del mes</div>
+                          <input id={`ev-${f.id}`} type="text" inputMode="numeric" defaultValue={f.diaVenc||18} onChange={e=>{e.target.value=soloDigitos(e.target.value).slice(0,2);}} style={{...inp,fontSize:13,fontFamily:"monospace",width:70}}/>
+                        </div>
                         <div style={{display:"flex",gap:7}}>
-                          <button onClick={()=>{const l=document.getElementById(`el-${f.id}`).value;const m=document.getElementById(`em-${f.id}`).value;setList(list.map(x=>x.id===f.id?{...x,label:l,monto:Number(soloDigitos(m))}:x));setEditando(null);tk("✓ Guardado");}} style={{flex:1,padding:"8px 0",background:C.accentDeep,border:"none",borderRadius:9,color:C.white,fontSize:12,cursor:"pointer",fontWeight:700}}>Guardar</button>
+                          <button onClick={()=>{const l=document.getElementById(`el-${f.id}`).value;const m=document.getElementById(`em-${f.id}`).value;const dv=Math.min(31,Math.max(1,Number(document.getElementById(`ev-${f.id}`).value)||18));setList(list.map(x=>x.id===f.id?{...x,label:l,monto:Number(soloDigitos(m)),diaVenc:dv}:x));setEditando(null);tk("✓ Guardado");}} style={{flex:1,padding:"8px 0",background:C.accentDeep,border:"none",borderRadius:9,color:C.white,fontSize:12,cursor:"pointer",fontWeight:700}}>Guardar</button>
                           <button onClick={()=>setEditando(null)} style={{flex:1,padding:"8px 0",background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:9,color:C.muted,fontSize:12,cursor:"pointer",fontWeight:600}}>Cancelar</button>
                         </div>
                       </div>:<>
                         <div style={{flex:1}}>
                           <div style={{fontSize:13,fontWeight:600}}>{f.label}</div>
-                          <div style={{fontSize:11,color:C.muted,fontFamily:"monospace"}}>{fmt(f.monto)}{f.cuotas?.activo?` · ${f.cuotas.pagadas}${f.cuotas.total?`/${f.cuotas.total}`:""} cuotas`:""}</div>
+                          <div style={{fontSize:11,color:C.muted,fontFamily:"monospace"}}>{fmt(f.monto)}{f.cuotas?.activo?` · ${f.cuotas.pagadas}${f.cuotas.total?`/${f.cuotas.total}`:""} cuotas`:""} · vence día {f.diaVenc||18}</div>
                         </div>
                         <button onClick={()=>setEditando(f.id)} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:8,padding:"6px 11px",fontSize:11,color:C.muted,cursor:"pointer"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
                         <button onClick={()=>{if(window.confirm("¿Eliminar este pago fijo?")){setList(list.filter(x=>x.id!==f.id));tk("Eliminado");}}} style={{background:C.dangerSoft,border:"none",borderRadius:8,padding:"6px 10px",fontSize:11,color:C.danger,cursor:"pointer"}}>✕</button>
@@ -2145,7 +2156,7 @@ function App() {
                   <input placeholder="Nombre" value={nuevoS.label} onChange={e=>setNuevo(p=>({...p,label:e.target.value}))} style={{...inp,width:"55%",fontSize:13}}/>
                   <input placeholder="Monto" type="text" inputMode="numeric" value={nuevoS.monto} onChange={e=>setNuevo(p=>({...p,monto:formatearMientrasEscribe(e.target.value)}))} style={{...inp,width:"45%",fontSize:13,fontFamily:"monospace"}}/>
                 </div>
-                <button onClick={()=>{if(!nuevoS.label||!nuevoS.monto)return;setList([...list,{id:Date.now(),label:nuevoS.label,monto:Number(soloDigitos(nuevoS.monto)),destino:"Banco",activo:true,cuotas:null}]);setNuevo({label:"",monto:""});tk("✓ Agregado");}} style={{width:"100%",marginTop:9,padding:"10px 0",background:"transparent",border:`1.5px dashed ${C.cardBorder}`,borderRadius:9,color:C.accentDeep,fontSize:12,cursor:"pointer",fontWeight:600}}>+ Agregar pago fijo</button>
+                <button onClick={()=>{if(!nuevoS.label||!nuevoS.monto)return;setList([...list,{id:Date.now(),label:nuevoS.label,monto:Number(soloDigitos(nuevoS.monto)),destino:"Banco",activo:true,cuotas:null,diaVenc:diaDefault}]);setNuevo({label:"",monto:""});tk("✓ Agregado");}} style={{width:"100%",marginTop:9,padding:"10px 0",background:"transparent",border:`1.5px dashed ${C.cardBorder}`,borderRadius:9,color:C.accentDeep,fontSize:12,cursor:"pointer",fontWeight:600}}>+ Agregar pago fijo</button>
               </div>
             ))}
           </>}
