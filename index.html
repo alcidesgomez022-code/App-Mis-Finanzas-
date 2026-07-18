@@ -39,7 +39,7 @@ async function sSet(k, v) {
   catch (err) { try{ window.dispatchEvent(new CustomEvent("finanzas-storage-error",{detail:err&&err.name})); }catch{} return false; }
 }
 
-const APP_VERSION = "2.0";
+const APP_VERSION = "2.1";
 const NOVEDADES = [
   // Agregá acá cada cosa nueva. El "id" tiene que ser único y no repetirse nunca.
   { id:"nv1", titulo:"Saldo de Ocio", texto:"Ahora podés ver cuánto te queda disponible para gastar en Ocio, acumulado mes a mes." },
@@ -87,6 +87,7 @@ const DV = [
 
 function fmt(n) { if (!n && n!==0) return "—"; return new Intl.NumberFormat("es-PY").format(Math.round(n))+" Gs."; }
 function hoyLocal(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function parseFechaPY(f){ const p=f?.split("/"); if(!p||p.length!==3) return new Date(0); return new Date(p[2],p[1]-1,p[0],12); }
 function haptic(ms=8){ try{ navigator.vibrate && navigator.vibrate(ms); }catch{} }
 function parseISO(iso){ const [y,m,d]=iso.split("-").map(Number); return {y,m,d}; }
 function buildISO(y,m,d){ return `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`; }
@@ -433,9 +434,10 @@ function App() {
     if(ratioDeuda<0.5){ score+=20; checks.push({ok:true,label:"Endeudamiento controlado"}); }
     else if(ratioDeuda<1){ score+=5; checks.push({ok:null,label:"Endeudamiento moderado"}); }
     else { score-=15; checks.push({ok:false,label:"Deuda alta respecto a tus activos"}); }
-    const pendientesUltima = historial[0]?.pagos?historial[0].pagos.filter(p=>!p.done).length:0;
+    const yaVencioUltima = historial[0] ? new Date()>parseFechaPY(historial[0].fecha) : false;
+    const pendientesUltima = (historial[0]?.pagos && yaVencioUltima) ? historial[0].pagos.filter(p=>!p.done).length : 0;
     if(historial.length>0 && pendientesUltima===0){ score+=10; checks.push({ok:true,label:"Pagos al día"}); }
-    else if(pendientesUltima>0){ score-=10; checks.push({ok:false,label:pendientesUltima+" pago(s) pendiente(s)"}); }
+    else if(pendientesUltima>0){ score-=10; checks.push({ok:false,label:pendientesUltima+" pago(s) atrasado(s)"}); }
     if(historial.length>0){
       const ultimo = historial[0];
       const pctAhorro = ultimo.total>0 ? (ultimo.ahorro/ultimo.total)*100 : 0;
@@ -947,7 +949,7 @@ function App() {
             <div style={{fontSize:10,color:C.muted,marginBottom:5,fontWeight:700,letterSpacing:0.6,textTransform:"uppercase"}}>Total ahorrado en {cn("ahorro")}</div>
             <div style={{display:"flex",alignItems:"center",gap:12}}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <div style={{fontSize:33,fontWeight:800,color:C.accent,letterSpacing:-1.2,fontFamily:"'SF Mono',monospace"}}>{ocultarSaldo?"••••••":fmt(totalAhorrado)}</div>
+                <div style={{fontSize:28,fontWeight:800,color:C.accent,letterSpacing:-0.8,fontFamily:"'SF Mono',monospace"}}>{ocultarSaldo?"••••••":fmt(totalAhorrado)}</div>
                 <button onClick={()=>setOcultarSaldo(!ocultarSaldo)} style={{background:"transparent",border:"none",cursor:"pointer",padding:4,opacity:0.6}}>
                   <span style={{display:"flex"}}><NavIcon name={ocultarSaldo?"eyeOff":"eye"} size={16} color={C.mutedLight} strokeWidth={1.7}/></span>
                 </button>
@@ -1031,8 +1033,8 @@ function App() {
       <div className="main-content" style={{padding:"14px 16px 90px"}}>
 
         {tab==="inicio"&&<div style={{display:"flex",flexDirection:"column"}}>
-          {historial[0]?.pagos&&historial[0].pagos.some(p=>!p.done)&&<div onClick={()=>{setTab("historial");setSubTabH("quincena");}} style={{background:C.warnSoft,border:`1px solid #f3d49a`,borderRadius:14,padding:"13px 16px",marginBottom:14,fontSize:13,color:C.warn,fontWeight:600,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span>⏳ Tenés {historial[0].pagos.filter(p=>!p.done).length} pago{historial[0].pagos.filter(p=>!p.done).length!==1?"s":""} pendiente{historial[0].pagos.filter(p=>!p.done).length!==1?"s":""} de la última quincena</span>
+          {historial[0]?.pagos&&historial[0].pagos.some(p=>!p.done)&&new Date()>parseFechaPY(historial[0].fecha)&&<div onClick={()=>{setTab("historial");setSubTabH("quincena");}} style={{background:C.warnSoft,border:`1px solid #f3d49a`,borderRadius:14,padding:"13px 16px",marginBottom:14,fontSize:13,color:C.warn,fontWeight:600,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span>⏳ Tenés {historial[0].pagos.filter(p=>!p.done).length} pago{historial[0].pagos.filter(p=>!p.done).length!==1?"s":""} atrasado{historial[0].pagos.filter(p=>!p.done).length!==1?"s":""} de la última quincena</span>
             <span>→</span>
           </div>}
 
@@ -1081,14 +1083,14 @@ function App() {
           {/* Patrimonio con gráfico */}
           <div style={{...cardStyle,background:`linear-gradient(135deg,${C.navy},${C.navyLight})`,border:"1px solid rgba(255,255,255,0.09)",boxShadow:"0 12px 36px rgba(0,0,0,0.45)"}}>
             <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.6)",letterSpacing:1.2,textTransform:"uppercase",marginBottom:10}}>Patrimonio neto</div>
-            <div style={{fontSize:22,fontWeight:800,color:C.white,fontFamily:"monospace",marginBottom:16}}>{fmt(patrimonio.neto)}</div>
+            <div style={{fontSize:19,fontWeight:800,color:C.white,fontFamily:"monospace",marginBottom:14}}>{fmt(patrimonio.neto)}</div>
             {(()=>{
               const total = patrimonio.activos + patrimonio.pasivos;
               const pctA = total>0 ? Math.max(4,Math.min(96,Math.round((patrimonio.activos/total)*100))) : 50;
               const pctP = 100-pctA;
               return(
                 <div style={{marginBottom:10}}>
-                  <div style={{display:"flex",width:"100%",height:7,borderRadius:5,overflow:"hidden",boxShadow:"inset 0 0 0 1px rgba(255,255,255,0.08)"}}>
+                  <div style={{display:"flex",width:"100%",height:4,borderRadius:3,overflow:"hidden",boxShadow:"inset 0 0 0 1px rgba(255,255,255,0.08)"}}>
                     <div style={{width:`${pctA}%`,background:"linear-gradient(90deg,#22c15e,#4ade80)"}}/>
                     <div style={{width:`${pctP}%`,background:"linear-gradient(90deg,#ef5b5b,#fca5a5)"}}/>
                   </div>
