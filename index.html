@@ -39,7 +39,7 @@ async function sSet(k, v) {
   catch (err) { try{ window.dispatchEvent(new CustomEvent("finanzas-storage-error",{detail:err&&err.name})); }catch{} return false; }
 }
 
-const APP_VERSION = "1.6";
+const APP_VERSION = "1.7";
 const NOVEDADES = [
   // Agregá acá cada cosa nueva. El "id" tiene que ser único y no repetirse nunca.
   { id:"nv1", titulo:"Saldo de Ocio", texto:"Ahora podés ver cuánto te queda disponible para gastar en Ocio, acumulado mes a mes." },
@@ -69,6 +69,7 @@ const DV = [
 
 function fmt(n) { if (!n && n!==0) return "—"; return new Intl.NumberFormat("es-PY").format(Math.round(n))+" Gs."; }
 function hoyLocal(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function haptic(ms=8){ try{ navigator.vibrate && navigator.vibrate(ms); }catch{} }
 function parseISO(iso){ const [y,m,d]=iso.split("-").map(Number); return {y,m,d}; }
 function buildISO(y,m,d){ return `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`; }
 const MESES_CORTOS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
@@ -526,6 +527,7 @@ function App() {
   }
 
   function guardar(){
+    haptic(15);
     if(!resultado) return;
     const pagosChecklist = [
       ...resultado.fijosActivos.map(p=>({label:p.label,monto:p.monto,sub:`${cn("cerebro")} → ${destinoLabel(p.destino)}`,done:!!checklist[resultado.fijosActivos.indexOf(p)]})),
@@ -577,6 +579,7 @@ function App() {
   }
 
   function toggleChecklistHistorial(historialId, pagoIndex){
+    haptic(8);
     setHistorial(h=>h.map(item=>{
       if(item.id!==historialId) return item;
       const nuevosPagos = item.pagos.map((p,i)=>i===pagoIndex?{...p,done:!p.done}:p);
@@ -725,6 +728,7 @@ function App() {
     tk("✓ Observación agregada");
   }
   function marcarCuotaCobrada(prestamoId, cuentaDestino, montoPago){
+    haptic(15);
     setPrestamosDados(prev=>prev.map(p=>{
       if(p.id!==prestamoId) return p;
       const nuevaFecha = p.fechaPago ? sumarMeses(p.fechaPago,1) : hoyLocal();
@@ -1544,7 +1548,7 @@ function App() {
             </div>
           </div>:<button onClick={()=>setShowNuevaDeuda(true)} style={{width:"100%",padding:"13px 0",background:C.accentSoft,border:`1.5px solid #a7e8c5`,borderRadius:14,color:C.accentDeep,fontWeight:700,fontSize:13,cursor:"pointer",marginBottom:14}}>+ Agregar deuda a cuota</button>}
 
-          {todosConCuotas.length===0?<div style={{textAlign:"center",color:C.muted,padding:"50px 0"}}><div style={{fontSize:38,marginBottom:12}}>📋</div>Sin deudas activas con cuotas.</div>
+          {todosConCuotas.length===0?<div style={{textAlign:"center",color:C.muted,padding:"56px 0"}}><div style={{width:56,height:56,borderRadius:"50%",background:C.card,border:`1px solid ${C.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",color:C.mutedLight}}><NavIcon name="checkCircle" size={24} strokeWidth={1.5}/></div><div style={{fontSize:13,fontWeight:600}}>Sin deudas activas con cuotas</div></div>
           :todosConCuotas.map(f=>{
             const setList = f.dia==="18"?setFijos18:setFijos5;
             const list = f.dia==="18"?fijos18:fijos5;
@@ -1561,9 +1565,9 @@ function App() {
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                     {(!f.cuotas.total||f.cuotas.pagadas<f.cuotas.total)&&
-                      <button onClick={e=>{e.stopPropagation();setList(list.map(x=>x.id===f.id?{...x,cuotas:{...x.cuotas,pagadas:x.cuotas.pagadas+1}}:x));tk("✓ +1 cuota");}} title="Marcar +1 cuota pagada" style={{background:C.accentSoft,border:"none",borderRadius:8,width:34,height:34,fontSize:15,color:C.accentDeep,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✓</button>
+                      <button onClick={e=>{e.stopPropagation();setList(list.map(x=>x.id===f.id?{...x,cuotas:{...x.cuotas,pagadas:x.cuotas.pagadas+1}}:x));tk("✓ +1 cuota");}} title="Marcar +1 cuota pagada" style={{background:C.accentSoft,border:"none",borderRadius:10,width:34,height:34,fontSize:15,color:C.accentDeep,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✓</button>
                     }
-                    <button onClick={e=>{e.stopPropagation();setEditCuotas(isEditing?null:key);}} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:8,width:34,height:34,fontSize:14,color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
+                    <button onClick={e=>{e.stopPropagation();setEditCuotas(isEditing?null:key);}} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:10,width:34,height:34,color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
                     <span style={{color:C.mutedLight,fontSize:12}}>{isExpanded?"▲":"▼"}</span>
                   </div>
                 </div>
@@ -1699,9 +1703,9 @@ function App() {
                     <div style={{fontSize:11,color:C.muted,marginTop:2}}>{fmt(info.montoRestante)} pendiente · {info.pctPagado}% cobrado</div>
                   </div>
                   <div style={{display:"flex",gap:6,flexShrink:0,alignItems:"center"}}>
-                    {!completo&&<button onClick={e=>{e.stopPropagation();setShowMarcarCobro(p.id);setCuentaCobroSeleccionada("ahorro");setMontoCobroInput("");setPrestamoExpandido(p.id);}} title="Marcar cuota cobrada" style={{background:C.accentSoft,border:"none",borderRadius:8,width:34,height:34,fontSize:15,color:C.accentDeep,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✓</button>}
-                    <button onClick={e=>{e.stopPropagation();setEditCuotasPrestamo(isEditing?null:p.id);setPrestamoExpandido(p.id);}} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:8,width:34,height:34,fontSize:14,color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
-                    <button onClick={e=>{e.stopPropagation();if(window.confirm("¿Eliminar este préstamo? Se pierde todo el historial de cobros.")){setPrestamosDados(pr=>pr.filter(x=>x.id!==p.id));tk("Eliminado");}}} style={{background:C.dangerSoft,border:"none",borderRadius:8,width:34,height:34,fontSize:14,color:C.danger,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+                    {!completo&&<button onClick={e=>{e.stopPropagation();setShowMarcarCobro(p.id);setCuentaCobroSeleccionada("ahorro");setMontoCobroInput("");setPrestamoExpandido(p.id);}} title="Marcar cuota cobrada" style={{background:C.accentSoft,border:"none",borderRadius:10,width:34,height:34,fontSize:15,color:C.accentDeep,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✓</button>}
+                    <button onClick={e=>{e.stopPropagation();setEditCuotasPrestamo(isEditing?null:p.id);setPrestamoExpandido(p.id);}} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:10,width:34,height:34,color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
+                    <button onClick={e=>{e.stopPropagation();if(window.confirm("¿Eliminar este préstamo? Se pierde todo el historial de cobros.")){setPrestamosDados(pr=>pr.filter(x=>x.id!==p.id));tk("Eliminado");}}} style={{background:C.dangerSoft,border:"none",borderRadius:10,width:34,height:34,fontSize:14,color:C.danger,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
                     <span style={{color:C.mutedLight,fontSize:12,marginLeft:2}}>{isExpanded?"▲":"▼"}</span>
                   </div>
                 </div>
@@ -1822,7 +1826,7 @@ function App() {
                 ...extrasF.filter(e=>e.destino!=="quincena").map(e=>({tipo:"extra",fecha:e.fecha,icono:"➕",label:e.desc,sub:`→ ${destinoLabel(e.destino)}`,monto:e.monto,color:C.purple,item:e})),
                 ...filtrar(retiros).map(r=>({tipo:"retiro",fecha:r.fecha,icono:"🚨",label:r.motivo,sub:"Retiro de "+cn("ahorro"),monto:-r.monto,color:C.danger,item:r})),
               ].sort((a,b)=>parseFechaPY(b.fecha)-parseFechaPY(a.fecha));
-              if(movimientos.length===0) return <div style={{textAlign:"center",color:C.muted,padding:"50px 0"}}><div style={{fontSize:38,marginBottom:12}}>📋</div>Sin movimientos registrados.</div>;
+              if(movimientos.length===0) return <div style={{textAlign:"center",color:C.muted,padding:"56px 0"}}><div style={{width:56,height:56,borderRadius:"50%",background:C.card,border:`1px solid ${C.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",color:C.mutedLight}}><NavIcon name="list" size={24} strokeWidth={1.5}/></div><div style={{fontSize:13,fontWeight:600}}>Sin movimientos registrados</div><div style={{fontSize:11,color:C.mutedLight,marginTop:4}}>Tus quincenas, extras y retiros van a aparecer acá</div></div>;
               return movimientos.map((m,i)=>{
                 const isExpanded = movExpandido===i;
                 return(
@@ -1915,7 +1919,7 @@ function App() {
                   <div><div style={{fontSize:14,fontWeight:800}}>Quincena Día {h.quincena}</div><div style={{fontSize:11,color:C.muted}}>{h.fecha}</div></div>
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
                     <div style={{textAlign:"right"}}><div style={{fontSize:17,fontWeight:800,color:C.accentDeep,fontFamily:"monospace"}}>{fmt(h.ahorro)}</div><div style={{fontSize:10,color:C.muted}}>{cn("ahorro")}</div></div>
-                    <button onClick={()=>{if(window.confirm("¿Eliminar esta quincena del historial? No se puede deshacer.")){setHistorial(hs=>hs.filter(x=>x.id!==h.id));setAportesGanaderia(ag=>ag.filter(x=>x.historialId!==h.id));tk("Quincena eliminada");}}} style={{background:C.dangerSoft,border:"none",borderRadius:7,width:32,height:32,fontSize:11,color:C.danger,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>✕</button>
+                    <button onClick={()=>{if(window.confirm("¿Eliminar esta quincena del historial? No se puede deshacer.")){setHistorial(hs=>hs.filter(x=>x.id!==h.id));setAportesGanaderia(ag=>ag.filter(x=>x.historialId!==h.id));tk("Quincena eliminada");}}} style={{background:C.dangerSoft,border:"none",borderRadius:10,width:32,height:32,fontSize:11,color:C.danger,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>✕</button>
                   </div>
                 </div>
                 <div style={{display:"flex",gap:8,marginBottom:h.pagos?12:0}}>
@@ -2150,8 +2154,8 @@ function App() {
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div style={{fontSize:18,fontWeight:800,fontFamily:"monospace",color:ahorroInicial?C.accent:C.muted}}>{ahorroInicial?fmt(ahorroInicial):"Sin cargar"}</div>
                 <div style={{display:"flex",gap:6}}>
-                  <button onClick={()=>{setAhorroInicialInput(ahorroInicial?new Intl.NumberFormat("es-PY").format(ahorroInicial):"");setEditAhorroInicial(true);}} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:8,width:34,height:34,fontSize:15,color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
-                  {ahorroInicial>0&&<button onClick={()=>{if(window.confirm("¿Eliminar el ahorro inicial cargado? Esto resta ese monto de tu total.")){setAhorroInicial(0);tk("Ahorro inicial eliminado");}}} style={{background:C.dangerSoft,border:"none",borderRadius:8,width:34,height:34,fontSize:15,color:C.danger,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>🗑️</button>}
+                  <button onClick={()=>{setAhorroInicialInput(ahorroInicial?new Intl.NumberFormat("es-PY").format(ahorroInicial):"");setEditAhorroInicial(true);}} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:10,width:34,height:34,fontSize:15,color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
+                  {ahorroInicial>0&&<button onClick={()=>{if(window.confirm("¿Eliminar el ahorro inicial cargado? Esto resta ese monto de tu total.")){setAhorroInicial(0);tk("Ahorro inicial eliminado");}}} style={{background:C.dangerSoft,border:"none",borderRadius:10,width:34,height:34,fontSize:15,color:C.danger,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>🗑️</button>}
                 </div>
               </div>
             </>}
@@ -2173,8 +2177,8 @@ function App() {
                   <div style={{fontSize:16,fontWeight:800,fontFamily:"monospace",color:ganaderiaInicial?C.gold:C.muted}}>{ganaderiaInicial?fmt(ganaderiaInicial):"Sin cargar"}</div>
                 </div>
                 <div style={{display:"flex",gap:6}}>
-                  <button onClick={()=>{setGanaderiaInicialInput(ganaderiaInicial?new Intl.NumberFormat("es-PY").format(ganaderiaInicial):"");setEditGanaderiaInicial(true);}} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:8,width:34,height:34,fontSize:15,color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
-                  {ganaderiaInicial>0&&<button onClick={()=>{if(window.confirm("¿Eliminar el monto inicial de ganadería?")){setGanaderiaInicial(0);tk("Eliminado");}}} style={{background:C.dangerSoft,border:"none",borderRadius:8,width:34,height:34,fontSize:15,color:C.danger,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>🗑️</button>}
+                  <button onClick={()=>{setGanaderiaInicialInput(ganaderiaInicial?new Intl.NumberFormat("es-PY").format(ganaderiaInicial):"");setEditGanaderiaInicial(true);}} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:10,width:34,height:34,fontSize:15,color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
+                  {ganaderiaInicial>0&&<button onClick={()=>{if(window.confirm("¿Eliminar el monto inicial de ganadería?")){setGanaderiaInicial(0);tk("Eliminado");}}} style={{background:C.dangerSoft,border:"none",borderRadius:10,width:34,height:34,fontSize:15,color:C.danger,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>🗑️</button>}
                 </div>
               </div>
               <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${C.divider}`,fontSize:11,color:C.muted}}>
@@ -2197,8 +2201,8 @@ function App() {
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div style={{fontSize:18,fontWeight:800,fontFamily:"monospace",color:meta?C.accent:C.muted}}>{meta?fmt(meta):"Sin meta configurada"}</div>
                 <div style={{display:"flex",gap:6}}>
-                  <button onClick={()=>{setMetaInput(meta?new Intl.NumberFormat("es-PY").format(meta):"");setEditMetaGeneral(true);}} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:8,width:34,height:34,fontSize:15,color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
-                  {meta&&<button onClick={()=>{if(window.confirm("¿Eliminar la meta general de ahorro?")){setMeta(null);tk("Meta eliminada");}}} style={{background:C.dangerSoft,border:"none",borderRadius:8,width:34,height:34,fontSize:15,color:C.danger,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>🗑️</button>}
+                  <button onClick={()=>{setMetaInput(meta?new Intl.NumberFormat("es-PY").format(meta):"");setEditMetaGeneral(true);}} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:10,width:34,height:34,fontSize:15,color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
+                  {meta&&<button onClick={()=>{if(window.confirm("¿Eliminar la meta general de ahorro?")){setMeta(null);tk("Meta eliminada");}}} style={{background:C.dangerSoft,border:"none",borderRadius:10,width:34,height:34,fontSize:15,color:C.danger,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>🗑️</button>}
                 </div>
               </div>
             </>}
