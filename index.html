@@ -39,13 +39,14 @@ async function sSet(k, v) {
   catch (err) { try{ window.dispatchEvent(new CustomEvent("finanzas-storage-error",{detail:err&&err.name})); }catch{} return false; }
 }
 
-const APP_VERSION = "1.7";
+const APP_VERSION = "1.8";
 const NOVEDADES = [
   // Agregá acá cada cosa nueva. El "id" tiene que ser único y no repetirse nunca.
   { id:"nv1", titulo:"Saldo de Ocio", texto:"Ahora podés ver cuánto te queda disponible para gastar en Ocio, acumulado mes a mes." },
   { id:"nv2", titulo:"Salud financiera y Patrimonio", texto:"Nueva tarjeta con un puntaje de 0 a 100 sobre tu situación, y el Patrimonio ahora se ve con un gráfico de barras (Activos vs Deudas)." },
   { id:"nv3", titulo:"Colores más claros", texto:"Los gastos ahora se ven en rojo y el ahorro en verde, para entender de un vistazo qué pasa con tu plata cada mes." },
   { id:"nv4", titulo:"Nuevo look", texto:"Rediseño visual: íconos más finos, colores más cuidados, y tarjetas con más profundidad para que se sienta más profesional." },
+  { id:"nv5", titulo:"Perfil rápido", texto:"Tocá el círculo de tu iniciales en Inicio para ver tu perfil y editarlo, sin ir a Config. También sacamos la campanita — mostraba info duplicada." },
 ];
 const D_CUENTAS = { cerebro:"EKO", operativa:"Itaú", credito:"Ueno", ahorro:"Continental", ganaderia:"Mango", mutual:"Caja Mutual" };
 
@@ -138,6 +139,27 @@ const ICONS = {
   checkCircle: <><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.3l2.3 2.3 4.7-5"/></>,
   wallet: <><rect x="3" y="6.5" width="18" height="13" rx="2"/><path d="M3 10h18M16 14.5h1.5"/></>,
   plusCircle: <><circle cx="12" cy="12" r="8.5"/><path d="M12 8.3v7.4M8.3 12h7.4"/></>,
+  alertCircle: <><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5.5M12 16.2h.01"/></>,
+  heart: <path d="M12 20.5S3.5 15.2 3.5 9.3A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 8.5 1.7c0 5.9-8.5 11.2-8.5 11.2Z"/>,
+  gamepad: <><rect x="2.5" y="7.5" width="19" height="10" rx="4"/><path d="M7 10.5v4M5 12.5h4"/><circle cx="15.2" cy="11" r="1"/><circle cx="17.8" cy="13.5" r="1"/></>,
+  trash: <><path d="M4 7h16M9.5 7V5a1.5 1.5 0 0 1 1.5-1.5h2A1.5 1.5 0 0 1 14.5 5v2M6.5 7l1 13a1.5 1.5 0 0 0 1.5 1.4h6a1.5 1.5 0 0 0 1.5-1.4l1-13"/><path d="M10 11v6M14 11v6"/></>,
+  save: <><path d="M5 3.5h11l3.5 3.5V19a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19V5A1.5 1.5 0 0 1 5 3.5Z"/><path d="M7.5 3.5V8h7V3.5M7.5 20v-6h9v6"/></>,
+  flame: <path d="M12 21.5c-4 0-6.5-2.7-6.5-6.2 0-3 2-5 3-7.3.5 1.3 1.3 2.2 2.3 2.2-.2-2.7 1-5 3.2-6.7-.4 2 .3 3.7 1.5 5.2 1.5 1.8 2.5 3.6 2.5 6.1 0 4-3 6.7-6 6.7Z"/>,
+  sprout: <><path d="M12 21V12"/><path d="M12 12c0-4-3-6.5-7-6.5C5 9.5 8 12 12 12Z"/><path d="M12 12c0-3.5 2.5-6 6-6 0 3.5-2.5 6-6 6Z"/></>,
+  eye: <><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></>,
+  eyeOff: <><path d="M3.5 3.5l17 17"/><path d="M10.6 5.7A9.8 9.8 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-3.2 4M6.5 6.9C4 8.7 2.5 12 2.5 12S6 18.5 12 18.5c1.1 0 2.1-.2 3-.5"/><path d="M9.5 12a2.5 2.5 0 0 0 3.5 2.3"/></>,
+  sparkle: <><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><path d="M12 8.5 13 12l3.5 1-3.5 1L12 17.5 11 14l-3.5-1L11 12Z"/></>,
+  moon: <path d="M20 14.2A8.5 8.5 0 0 1 9.8 4 8.5 8.5 0 1 0 20 14.2Z"/>,
+  trendingUp: <><path d="M3 17 9.5 10.5 13.5 14.5 21 6.5"/><path d="M15.5 6.5H21v5.5"/></>,
+  trendingDown: <><path d="M3 7l6.5 6.5 4-4L21 17"/><path d="M15.5 17H21v-5.5"/></>,
+  search: <><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.5-4.5"/></>,
+  tag: <><path d="M3.5 11.5V5a1.5 1.5 0 0 1 1.5-1.5h6.5L20.5 12.5 12.5 20.5 3.5 11.5Z"/><circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none"/></>,
+  hammer: <><path d="M14.5 6.5 18 3l3 3-3.5 3.5"/><path d="M15.5 9.5 5 20l-2-2L13.5 7.5Z"/><path d="M12.5 5.5l4.5 4.5"/></>,
+  gift: <><rect x="3.5" y="9" width="17" height="11" rx="1.5"/><path d="M3.5 13h17M12 9v11"/><path d="M12 9C10 9 8 8 8 6a2 2 0 0 1 4 0 2 2 0 0 1 4 0c0 2-2 3-4 3Z"/></>,
+  box: <><path d="M3.5 8 12 3.5 20.5 8 12 12.5 3.5 8Z"/><path d="M3.5 8v9L12 21.5 20.5 17V8M12 12.5V21.5"/></>,
+  download: <><path d="M12 3.5v11M8 11l4 4 4-4"/><path d="M4.5 17.5V19a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-1.5"/></>,
+  upload: <><path d="M12 20.5v-11M8 13l4-4 4 4"/><path d="M4.5 17.5V19a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-1.5"/></>,
+  folder: <path d="M3.5 6.5A1.5 1.5 0 0 1 5 5h4.5l2 2.5H19a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 19 19.5H5A1.5 1.5 0 0 1 3.5 18Z"/>,
   bell: <><path d="M6 9a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 13 6 9Z"/><path d="M10 19a2 2 0 0 0 4 0"/></>,
   plus: <path d="M12 5v14M5 12h14"/>,
 };
@@ -153,7 +175,7 @@ function ProgressBar({ pagadas, total, monto, label }) {
         <span style={{fontSize:11,color:C.muted,fontWeight:600}}>{label}</span>
         <span style={{fontSize:11,fontWeight:800,color:C.accentDeep}}>{pagadas}{total?` / ${total}`:""} cuotas</span>
       </div>
-      {total && <div style={{background:"rgba(255,255,255,0.1)",borderRadius:5,height:7,marginBottom:8,overflow:"hidden"}}>
+      {total && <div style={{background:"rgba(255,255,255,0.1)",borderRadius:4,height:4,marginBottom:8,overflow:"hidden"}}>
         <div style={{width:`${pct}%`,height:"100%",background:`linear-gradient(90deg,${C.accent}33,${C.accentDeep})`,borderRadius:5,transition:"width 0.4s ease"}}/>
       </div>}
       <div style={{display:"flex",gap:14,fontSize:11,color:C.muted}}>
@@ -467,31 +489,6 @@ function App() {
   }
   const prox = proximoCobro();
 
-  function alertasActivas(){
-    const al=[];
-    if(prox.dias<=1) al.push({icon:"🔔",msg:prox.dias===0?`¡Hoy cobrás! Día ${prox.quincena}`:`Mañana cobrás — Día ${prox.quincena}`});
-    else al.push({icon:"📅",msg:`Próximo cobro: Día ${prox.quincena} — en ${prox.dias} día${prox.dias!==1?"s":""}`});
-    const pendientesUltima = historial[0]?.pagos?historial[0].pagos.filter(p=>!p.done).length:0;
-    if(pendientesUltima>0) al.push({icon:"⏳",msg:`${pendientesUltima} pago${pendientesUltima!==1?"s":""} pendiente${pendientesUltima!==1?"s":""} de la última quincena`});
-    const cercaDeMeta = meta && totalAhorrado/meta>=0.9 && totalAhorrado<meta;
-    if(cercaDeMeta) al.push({icon:"🎯",msg:`¡Estás cerca de tu meta! Falta ${fmt(meta-totalAhorrado)}`});
-    if(completadas.length>0) al.push({icon:"🎉",msg:`Tenés ${completadas.length} deuda${completadas.length!==1?"s":""} completada${completadas.length!==1?"s":""}`});
-    todosConCuotas.forEach(f=>{
-      if(f.cuotas.total && f.cuotas.total-f.cuotas.pagadas<=3 && f.cuotas.total-f.cuotas.pagadas>0){
-        al.push({icon:"🔔",msg:`${f.label}: solo faltan ${f.cuotas.total-f.cuotas.pagadas} cuota${f.cuotas.total-f.cuotas.pagadas!==1?"s":""}`});
-      }
-    });
-    if(diasSinReg!==null && diasSinReg>18) al.push({icon:"⏰",msg:`Pasaron ${diasSinReg} días desde tu última quincena registrada. ¿Te olvidaste de cargar la última?`});
-    if(historial.length>0){
-      const diasDesdeBackup = ultimoBackup ? Math.floor((new Date()-new Date(ultimoBackup+"T12:00:00"))/86400000) : 999;
-      if(diasDesdeBackup>60) al.push({icon:"💾",msg:ultimoBackup?`Hace ${diasDesdeBackup} días que no exportás un respaldo`:"Nunca exportaste un respaldo — hacelo en Config → Respaldo"});
-    }
-    let racha=0;
-    for(const h of historial){ if((h.ahorro||0)>0) racha++; else break; }
-    if(racha>=3) al.push({icon:"🔥",msg:`Racha de ${racha} quincenas ahorrando seguidas`});
-    return al;
-  }
-
   function filtrar(items){
     if(rangoDesde&&rangoHasta){
       const d=new Date(rangoDesde+"T00:00:00"), h=new Date(rangoHasta+"T23:59:59");
@@ -803,7 +800,7 @@ function App() {
 
       {recordatorioAporte&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(11,37,64,0.55)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
         <div style={{background:"rgba(6,16,12,0.94)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:18,padding:22,maxWidth:400,width:"100%",maxHeight:"80vh",overflowY:"auto"}}>
-          <div style={{fontSize:16,fontWeight:800,marginBottom:6}}>🎯 ¿Aportar a tus metas?</div>
+          <div style={{fontSize:16,fontWeight:800,marginBottom:6,display:"flex",alignItems:"center",gap:8}}><NavIcon name="target" size={17} strokeWidth={1.8}/> ¿Aportar a tus metas?</div>
           <div style={{fontSize:13,color:C.muted,marginBottom:18}}>Guardaste {fmt(recordatorioAporte.ahorro)} de ahorro esta quincena. ¿Querés destinar algo a tus metas de proyecto?</div>
           {metasExtra.filter(m=>calcularMetaExtra(m).falta>0).map(m=>{
             const c=calcularMetaExtra(m);
@@ -829,16 +826,16 @@ function App() {
 
       {showSelectorRetiro&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(11,37,64,0.55)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
         <div style={{background:"rgba(6,16,12,0.94)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:18,padding:22,maxWidth:400,width:"100%"}}>
-          <div style={{fontSize:16,fontWeight:800,marginBottom:16}}>🚨 ¿De dónde retirás?</div>
-          <button onClick={()=>{setShowSelectorRetiro(false);setShowRetiro(true);}} style={{width:"100%",padding:"14px 16px",background:C.accentSoft,border:`1.5px solid #a7e8c5`,borderRadius:12,color:C.accentDeep,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:10,textAlign:"left"}}>💚 {cn("ahorro")} (ahorro)</button>
-          <button onClick={()=>{setShowSelectorRetiro(false);setShowGastoOcio(true);}} style={{width:"100%",padding:"14px 16px",background:C.warnSoft,border:`1.5px solid ${C.warn}66`,borderRadius:12,color:C.warn,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:14,textAlign:"left"}}>🎮 Ocio</button>
+          <div style={{fontSize:16,fontWeight:800,marginBottom:16,display:"flex",alignItems:"center",gap:8}}><NavIcon name="alertCircle" size={17} color={C.danger} strokeWidth={2}/> ¿De dónde retirás?</div>
+          <button onClick={()=>{setShowSelectorRetiro(false);setShowRetiro(true);}} style={{width:"100%",padding:"14px 16px",background:C.accentSoft,border:`1.5px solid #a7e8c5`,borderRadius:12,color:C.accentDeep,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:10,textAlign:"left"}}><NavIcon name="heart" size={15} strokeWidth={1.8}/> {cn("ahorro")} (ahorro)</button>
+          <button onClick={()=>{setShowSelectorRetiro(false);setShowGastoOcio(true);}} style={{width:"100%",padding:"14px 16px",background:C.warnSoft,border:`1.5px solid ${C.warn}66`,borderRadius:12,color:C.warn,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:14,textAlign:"left"}}><NavIcon name="gamepad" size={15} strokeWidth={1.8}/> Ocio</button>
           <button onClick={()=>setShowSelectorRetiro(false)} style={{width:"100%",padding:"11px 0",background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:10,color:C.muted,fontSize:13,cursor:"pointer"}}>Cancelar</button>
         </div>
       </div>}
 
       {showRetiro&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(11,37,64,0.55)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
         <div style={{background:"rgba(6,16,12,0.94)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:18,padding:22,maxWidth:400,width:"100%",maxHeight:"85vh",overflowY:"auto"}}>
-          <div style={{fontSize:16,fontWeight:800,marginBottom:6}}>🚨 Retirar de {cn("ahorro")}</div>
+          <div style={{fontSize:16,fontWeight:800,marginBottom:6,display:"flex",alignItems:"center",gap:8}}><NavIcon name="alertCircle" size={17} color={C.danger} strokeWidth={2}/> Retirar de {cn("ahorro")}</div>
           <div style={{fontSize:13,color:C.muted,marginBottom:16}}>Registrá cuánto sacaste y por qué. Queda en el historial y se resta del total.</div>
           <input type="text" inputMode="numeric" placeholder="Monto retirado" value={nuevoRetiro.monto} onChange={e=>setNuevoRetiro(p=>({...p,monto:formatearMientrasEscribe(e.target.value)}))} style={{...inp,fontSize:14,fontFamily:"monospace",marginBottom:10}}/>
           <input type="text" placeholder="Motivo (ej: emergencia médica)" value={nuevoRetiro.motivo} onChange={e=>setNuevoRetiro(p=>({...p,motivo:e.target.value}))} style={{...inp,fontSize:14,marginBottom:10}}/>
@@ -852,7 +849,7 @@ function App() {
 
       {showGastoOcio&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(11,37,64,0.55)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
         <div style={{background:"rgba(6,16,12,0.94)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:18,padding:22,maxWidth:400,width:"100%",maxHeight:"85vh",overflowY:"auto"}}>
-          <div style={{fontSize:16,fontWeight:800,marginBottom:6}}>🎮 Retirar de Ocio</div>
+          <div style={{fontSize:16,fontWeight:800,marginBottom:6,display:"flex",alignItems:"center",gap:8}}><NavIcon name="gamepad" size={17} color={C.warn} strokeWidth={2}/> Retirar de Ocio</div>
           <div style={{fontSize:13,color:C.muted,marginBottom:16}}>Registrá cuánto retiraste. Se resta de tu saldo disponible de Ocio.</div>
           <input type="text" inputMode="numeric" placeholder="Monto gastado" value={nuevoGastoOcio.monto} onChange={e=>setNuevoGastoOcio(p=>({...p,monto:formatearMientrasEscribe(e.target.value)}))} style={{...inp,fontSize:14,fontFamily:"monospace",marginBottom:10}}/>
           <input type="text" placeholder="¿En qué? (opcional)" value={nuevoGastoOcio.motivo} onChange={e=>setNuevoGastoOcio(p=>({...p,motivo:e.target.value}))} style={{...inp,fontSize:14,marginBottom:10}}/>
@@ -866,7 +863,7 @@ function App() {
 
       {showRestaurarTexto&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(11,37,64,0.55)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
         <div style={{background:"rgba(6,16,12,0.94)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:18,padding:22,maxWidth:400,width:"100%",maxHeight:"85vh",overflowY:"auto"}}>
-          <div style={{fontSize:16,fontWeight:800,marginBottom:6}}>📋 Restaurar desde texto</div>
+          <div style={{fontSize:16,fontWeight:800,marginBottom:6,display:"flex",alignItems:"center",gap:8}}><NavIcon name="folder" size={17} strokeWidth={1.8}/> Restaurar desde texto</div>
           <div style={{fontSize:12,color:C.muted,marginBottom:14}}>Pegá acá el texto que copiaste antes con "Ver como texto".</div>
           <textarea value={textoRestaurar} onChange={e=>setTextoRestaurar(e.target.value)} placeholder="Pegá el texto del respaldo acá..." style={{...inp,fontSize:11,fontFamily:"monospace",height:150,marginBottom:12,resize:"vertical"}}/>
           <div style={{display:"flex",gap:8}}>
@@ -878,7 +875,7 @@ function App() {
 
       {showBackupTexto&&<div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(11,37,64,0.55)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
         <div style={{background:"rgba(6,16,12,0.94)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:18,padding:22,maxWidth:400,width:"100%",maxHeight:"85vh",overflowY:"auto"}}>
-          <div style={{fontSize:16,fontWeight:800,marginBottom:6}}>📋 Respaldo como texto</div>
+          <div style={{fontSize:16,fontWeight:800,marginBottom:6,display:"flex",alignItems:"center",gap:8}}><NavIcon name="folder" size={17} strokeWidth={1.8}/> Respaldo como texto</div>
           <div style={{fontSize:12,color:C.muted,marginBottom:14}}>Copiá todo este texto y guardalo en cualquier lugar (una nota, un mensaje a vos mismo, etc.). Para restaurar, pegalo cuando te lo pida.</div>
           {(()=>{
             const data={historial,extrasReg,fijos18,fijos5,vars,pcts,cuentas,meta,completadas,perfil,metasExtra,ahorroInicial,retiros,prestamosDados,ocultarSaldo,ganaderiaInicial,aportesGanaderia,gastosOcio,exportado:new Date().toISOString()};
@@ -886,7 +883,7 @@ function App() {
             return(
               <>
                 <textarea readOnly value={texto} style={{...inp,fontSize:10,fontFamily:"monospace",height:180,marginBottom:12,resize:"vertical"}} onClick={e=>e.target.select()}/>
-                <button onClick={()=>{navigator.clipboard?.writeText(texto);setUltimoBackup(hoyLocal());tk("✓ Copiado — pegalo donde quieras guardarlo");}} style={{width:"100%",padding:"12px 0",background:C.accentDeep,border:"none",borderRadius:11,color:C.white,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:8}}>📋 Copiar todo</button>
+                <button onClick={()=>{navigator.clipboard?.writeText(texto);setUltimoBackup(hoyLocal());tk("✓ Copiado — pegalo donde quieras guardarlo");}} style={{width:"100%",padding:"12px 0",background:C.accentDeep,border:"none",borderRadius:11,color:C.white,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:8}}><NavIcon name="save" size={15} strokeWidth={1.8}/> Copiar todo</button>
               </>
             );
           })()}
@@ -901,32 +898,23 @@ function App() {
           {/* Saludo personalizado */}
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,position:"relative"}}>
             <div style={{display:"flex",alignItems:"center",gap:11}}>
-              <div style={{width:38,height:38,borderRadius:"50%",background:C.accentSoft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:800,color:C.accent,border:`1.5px solid ${C.accent}44`}}>{perfil.iniciales}</div>
+              <div style={{position:"relative"}}>
+                <button onClick={()=>setShowNotif(!showNotif)} style={{padding:0,cursor:"pointer",width:38,height:38,borderRadius:"50%",background:C.accentSoft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:800,color:C.accent,border:`1.5px solid ${C.accent}44`}}>{perfil.iniciales}</button>
+                {showNotif&&<div style={{position:"absolute",top:44,left:0,width:230,background:"rgba(20,30,25,0.9)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",borderRadius:16,border:"1px solid rgba(255,255,255,0.12)",padding:16,zIndex:50,boxShadow:"0 10px 30px rgba(0,0,0,0.4)"}}>
+                  <div style={{fontSize:15,fontWeight:800,color:C.white,marginBottom:2}}>{perfil.nombre}</div>
+                  <div style={{fontSize:11,color:C.mutedLight,marginBottom:12}}>Versión {APP_VERSION}</div>
+                  <button onClick={()=>{setShowNotif(false);setTab("config");setSubTabC("perfil");}} style={{width:"100%",padding:"9px 0",background:C.accentSoft,border:"none",borderRadius:9,color:C.accentDeep,fontWeight:700,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><NavIcon name="pencil" size={13} strokeWidth={2}/> Editar perfil</button>
+                </div>}
+              </div>
               <div style={{fontSize:16,fontWeight:700,color:C.white}}>Hola, {perfil.nombre}</div>
             </div>
-            <div style={{position:"relative"}}>
-              <button onClick={()=>setShowNotif(!showNotif)} style={{background:"transparent",border:"none",cursor:"pointer",position:"relative",padding:4}}>
-                <NavIcon name="bell" size={19} color={C.mutedLight} strokeWidth={1.7}/>
-                {alertasActivas().length>0&&<span style={{position:"absolute",top:0,right:0,width:9,height:9,borderRadius:"50%",background:"#ff5252",border:`1.5px solid ${C.bg}`}}/>}
-              </button>
-              {showNotif&&<div style={{position:"absolute",top:34,right:0,width:250,background:"rgba(20,30,25,0.85)",backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",borderRadius:14,border:"1px solid rgba(255,255,255,0.12)",padding:14,zIndex:50}}>
-                <div style={{fontSize:10,fontWeight:800,color:C.muted,letterSpacing:1.2,textTransform:"uppercase",marginBottom:10}}>Novedades</div>
-                {alertasActivas().map((a,i,arr)=>(
-                  <div key={i} style={{display:"flex",gap:9,padding:"8px 0",borderBottom:i<arr.length-1?"1px solid rgba(255,255,255,0.1)":"none",fontSize:12.5,color:C.text,alignItems:"flex-start"}}>
-                    <span>{a.icon}</span><span style={{flex:1}}>{a.msg}</span>
-                  </div>
-                ))}
-              </div>}
-            </div>
-          </div>
-
           <div style={{marginBottom:16,position:"relative"}}>
             <div style={{fontSize:10,color:C.muted,marginBottom:5,fontWeight:700,letterSpacing:0.6,textTransform:"uppercase"}}>Total ahorrado en {cn("ahorro")}</div>
             <div style={{display:"flex",alignItems:"center",gap:12}}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <div style={{fontSize:40,fontWeight:800,color:C.accent,letterSpacing:-1.6,fontFamily:"'SF Mono',monospace"}}>{ocultarSaldo?"••••••":fmt(totalAhorrado)}</div>
                 <button onClick={()=>setOcultarSaldo(!ocultarSaldo)} style={{background:"transparent",border:"none",cursor:"pointer",padding:4,opacity:0.6}}>
-                  <span style={{fontSize:16}}>{ocultarSaldo?"🙈":"👁️"}</span>
+                  <span style={{display:"flex"}}><NavIcon name={ocultarSaldo?"eyeOff":"eye"} size={16} color={C.mutedLight} strokeWidth={1.7}/></span>
                 </button>
               </div>
             </div>
@@ -935,17 +923,17 @@ function App() {
           {/* Fila de píldoras estilo Homex (temp/humedad/AQI) */}
           <div style={{display:"flex",background:"rgba(255,255,255,0.05)",borderRadius:14,border:"1px solid rgba(255,255,255,0.08)",overflow:"hidden",position:"relative"}}>
             <div style={{flex:1,padding:"10px 8px",textAlign:"center",borderRight:"1px solid rgba(255,255,255,0.08)"}}>
-              <div style={{fontSize:13}}>📅</div>
+              <div style={{display:"flex",justifyContent:"center",color:C.accent}}><NavIcon name="calendar" size={15} strokeWidth={1.8}/></div>
               <div style={{fontSize:12,fontWeight:800,color:C.white,marginTop:2}}>{historial.length}</div>
               <div style={{fontSize:9,color:C.muted}}>Quincenas</div>
             </div>
             <div style={{flex:1,padding:"10px 8px",textAlign:"center",borderRight:"1px solid rgba(255,255,255,0.08)"}}>
-              <div style={{fontSize:13}}>🐄</div>
+              <div style={{display:"flex",justifyContent:"center",color:C.gold}}><NavIcon name="sprout" size={15} strokeWidth={1.8}/></div>
               <div style={{fontSize:12,fontWeight:800,color:C.gold,marginTop:2}}>{fmt(ganaderiaInicial + aportesGanaderia.reduce((a,x)=>a+(x.monto||0),0)).replace(" Gs.","")}</div>
               <div style={{fontSize:9,color:C.muted}}>Mango</div>
             </div>
             <div style={{flex:1,padding:"10px 8px",textAlign:"center"}}>
-              <div style={{fontSize:13}}>🎯</div>
+              <div style={{display:"flex",justifyContent:"center",color:C.info}}><NavIcon name="target" size={15} strokeWidth={1.8}/></div>
               <div style={{fontSize:12,fontWeight:800,color:C.info,marginTop:2}}>{meta?Math.min(100,Math.round((totalAhorrado/meta)*100))+"%":"—"}</div>
               <div style={{fontSize:9,color:C.muted}}>Meta</div>
             </div>
@@ -956,11 +944,11 @@ function App() {
               <span style={{fontSize:11,color:C.muted,fontWeight:500}}>Meta: {fmt(meta)}</span>
               <span style={{fontSize:12,color:C.white,fontWeight:800}}>{Math.min(100,Math.round((totalAhorrado/meta)*100))}%</span>
             </div>
-            <div style={{background:"rgba(255,255,255,0.1)",borderRadius:5,height:6,overflow:"hidden"}}>
+            <div style={{background:"rgba(255,255,255,0.1)",borderRadius:4,height:4,overflow:"hidden"}}>
               <div style={{width:`${Math.min(100,(totalAhorrado/meta)*100)}%`,height:"100%",background:`linear-gradient(90deg,${C.accent}33,${C.accentDeep})`,borderRadius:5}}/>
             </div>
             {proyeccion&&!proyeccion.cumplida&&<div style={{fontSize:10,color:C.muted,marginTop:7}}>Llegás en ~{proyeccion.mesesFaltan} mes{proyeccion.mesesFaltan!==1?"es":""} · {proyeccion.fechaMeta}</div>}
-            {proyeccion?.cumplida&&<div style={{fontSize:11,color:C.accent,marginTop:7,fontWeight:700}}>🎉 ¡Meta cumplida!</div>}
+            {proyeccion?.cumplida&&<div style={{fontSize:11,color:C.accent,marginTop:7,fontWeight:700,display:"flex",alignItems:"center",gap:5}}><NavIcon name="sparkle" size={13} strokeWidth={1.8}/> ¡Meta cumplida!</div>}
           </div>}
           {historial[0]&&!meta&&<div style={{marginTop:14,fontSize:11,color:C.muted,position:"relative"}}>
             Último ahorro: <strong style={{color:C.accent,fontFamily:"monospace"}}>{fmt(historial[0].ahorro)}</strong> · Día {historial[0].quincena}
@@ -984,11 +972,11 @@ function App() {
           <div style={{position:"relative",display:"flex",flexDirection:"column",alignItems:"center"}}>
             {showMenuCargar&&<div style={{position:"absolute",bottom:64,left:"50%",transform:"translateX(-50%)",background:"rgba(6,16,12,0.97)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:16,padding:8,width:220,boxShadow:"0 10px 30px rgba(0,0,0,0.4)",zIndex:50}}>
               {[
-                {label:"💰 Calcular quincena",action:()=>{setTab("calc");setResultado(null);}},
-                {label:"➕ Ingreso extra",action:()=>{setTab("historial");setSubTabH("extras");setShowAddExtra(true);}},
-                {label:"🚨 Retirar",action:()=>setShowSelectorRetiro(true)},
+                {label:"Calcular quincena",icon:"wallet",action:()=>{setTab("calc");setResultado(null);}},
+                {label:"Ingreso extra",icon:"plusCircle",action:()=>{setTab("historial");setSubTabH("extras");setShowAddExtra(true);}},
+                {label:"Retirar",icon:"alertCircle",action:()=>setShowSelectorRetiro(true)},
               ].map((op,i)=>(
-                <button key={i} onClick={()=>{op.action();setShowMenuCargar(false);setDeudaExpandida(null);setPrestamoExpandido(null);setMovExpandido(null);setEditando(null);}} style={{width:"100%",textAlign:"left",padding:"12px 14px",background:"transparent",border:"none",color:C.text,fontSize:13,fontWeight:600,cursor:"pointer",borderRadius:10,display:"block"}}>{op.label}</button>
+                <button key={i} onClick={()=>{op.action();setShowMenuCargar(false);setDeudaExpandida(null);setPrestamoExpandido(null);setMovExpandido(null);setEditando(null);}} style={{width:"100%",textAlign:"left",padding:"12px 14px",background:"transparent",border:"none",color:C.text,fontSize:13,fontWeight:600,cursor:"pointer",borderRadius:10,display:"flex",alignItems:"center",gap:10}}><NavIcon name={op.icon} size={16} color={C.accentDeep} strokeWidth={1.8}/>{op.label}</button>
               ))}
             </div>}
             <button onClick={()=>setShowMenuCargar(!showMenuCargar)} style={{width:54,height:54,borderRadius:"50%",background:showMenuCargar?`linear-gradient(135deg,${C.accentDeep},${C.accent})`:"rgba(255,255,255,0.06)",border:showMenuCargar?`3px solid ${C.navy}`:"1px solid rgba(255,255,255,0.08)",boxShadow:showMenuCargar?"0 6px 18px rgba(34,232,136,0.45)":"none",display:"flex",alignItems:"center",justifyContent:"center",color:showMenuCargar?C.white:C.mutedLight,cursor:"pointer",transform:showMenuCargar?"translateY(-8px) rotate(45deg)":"translateY(-8px)",transition:"transform 0.2s, background 0.2s",marginBottom:-4}}><NavIcon name="plus" size={24} color={showMenuCargar?C.white:C.mutedLight} strokeWidth={2}/></button>
@@ -1053,32 +1041,28 @@ function App() {
           {/* Patrimonio con gráfico */}
           <div style={{...cardStyle,background:`linear-gradient(135deg,${C.navy},${C.navyLight})`,border:"1px solid rgba(255,255,255,0.09)",boxShadow:"0 12px 36px rgba(0,0,0,0.45)"}}>
             <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.6)",letterSpacing:1.2,textTransform:"uppercase",marginBottom:10}}>Patrimonio neto</div>
-            <div style={{fontSize:26,fontWeight:800,color:C.white,fontFamily:"monospace",marginBottom:14}}>{fmt(patrimonio.neto)}</div>
+            <div style={{fontSize:26,fontWeight:800,color:C.white,fontFamily:"monospace",marginBottom:16}}>{fmt(patrimonio.neto)}</div>
             {(()=>{
               const maxVal = Math.max(patrimonio.activos, patrimonio.pasivos, 1);
-              const pctA = Math.max(3,Math.round((patrimonio.activos/maxVal)*100));
-              const pctP = Math.max(3,Math.round((patrimonio.pasivos/maxVal)*100));
+              const hA = Math.max(6,Math.round((patrimonio.activos/maxVal)*84));
+              const hP = Math.max(6,Math.round((patrimonio.pasivos/maxVal)*84));
               return(
-                <>
-                  <div style={{marginBottom:8}}>
-                    <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"rgba(255,255,255,0.6)",marginBottom:4}}>
-                      <span>Activos</span><span style={{color:"#4ade80",fontWeight:700,fontFamily:"monospace"}}>{fmt(patrimonio.activos)}</span>
-                    </div>
-                    <div style={{background:"rgba(255,255,255,0.1)",borderRadius:6,height:10,overflow:"hidden"}}>
-                      <div style={{width:`${pctA}%`,height:"100%",background:"linear-gradient(90deg,#22e88855,#22e888)",borderRadius:6}}/>
-                    </div>
+                <div style={{display:"flex",gap:14,alignItems:"flex-end",height:84,marginBottom:4}}>
+                  <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end",height:"100%"}}>
+                    <div style={{fontSize:11,fontWeight:700,color:"#4ade80",fontFamily:"monospace",marginBottom:6}}>{fmt(patrimonio.activos)}</div>
+                    <div style={{width:"100%",height:hA,background:"linear-gradient(180deg,#4ade80,#22c15e)",borderRadius:"7px 7px 3px 3px"}}/>
                   </div>
-                  <div style={{marginBottom:4}}>
-                    <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"rgba(255,255,255,0.6)",marginBottom:4}}>
-                      <span>Deuda pendiente</span><span style={{color:"#fca5a5",fontWeight:700,fontFamily:"monospace"}}>{fmt(patrimonio.pasivos)}</span>
-                    </div>
-                    <div style={{background:"rgba(255,255,255,0.1)",borderRadius:6,height:10,overflow:"hidden"}}>
-                      <div style={{width:`${pctP}%`,height:"100%",background:"linear-gradient(90deg,#ff6b6b55,#ff6b6b)",borderRadius:6}}/>
-                    </div>
+                  <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end",height:"100%"}}>
+                    <div style={{fontSize:11,fontWeight:700,color:"#fca5a5",fontFamily:"monospace",marginBottom:6}}>{fmt(patrimonio.pasivos)}</div>
+                    <div style={{width:"100%",height:hP,background:"linear-gradient(180deg,#fca5a5,#ef5b5b)",borderRadius:"7px 7px 3px 3px"}}/>
                   </div>
-                </>
+                </div>
               );
             })()}
+            <div style={{display:"flex",gap:14,marginBottom:4}}>
+              <div style={{flex:1,textAlign:"center",fontSize:10,color:"rgba(255,255,255,0.55)",fontWeight:600}}>Activos</div>
+              <div style={{flex:1,textAlign:"center",fontSize:10,color:"rgba(255,255,255,0.55)",fontWeight:600}}>Deuda pendiente</div>
+            </div>
             <div style={{fontSize:10,color:"rgba(255,255,255,0.45)",marginTop:10}}>
               {cn("ahorro")} + {cn("ganaderia")} + {cn("mutual")} + por cobrar ({fmt(patrimonio.porCobrar)}) − cuotas restantes de deudas
             </div>
@@ -1105,7 +1089,7 @@ function App() {
             return(
               <div style={{...cardStyle,border:`1.5px solid ${C.info}66`,background:C.infoSoft}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                  <div style={{fontSize:11,fontWeight:800,color:C.info,textTransform:"uppercase",letterSpacing:0.5}}>✨ Novedades</div>
+                  <div style={{fontSize:11,fontWeight:800,color:C.info,textTransform:"uppercase",letterSpacing:0.5}}><span style={{display:"inline-flex",verticalAlign:"middle",marginRight:5}}><NavIcon name="sparkle" size={12} strokeWidth={1.8}/></span>Novedades</div>
                   <button onClick={()=>setNovedadesVistas(v=>[...v,...pendientes.map(n=>n.id)])} style={{background:"transparent",border:"none",color:C.muted,fontSize:16,cursor:"pointer",padding:2}}>✕</button>
                 </div>
                 {pendientes.map(n=>(
@@ -1126,7 +1110,7 @@ function App() {
               <div style={cardStyle}>
                 <div style={sectionTitle}>Racha de ahorro</div>
                 <div style={{display:"flex",alignItems:"center",gap:12}}>
-                  <div style={{fontSize:28}}>{racha>=3?"🔥":"💤"}</div>
+                  <div style={{color:racha>=3?C.warn:C.mutedLight,display:"flex"}}><NavIcon name={racha>=3?"flame":"moon"} size={26} strokeWidth={1.5}/></div>
                   <div>
                     <div style={{fontSize:20,fontWeight:800,color:racha>=3?C.warn:C.muted,fontFamily:"monospace"}}>{racha} quincena{racha!==1?"s":""}</div>
                     <div style={{fontSize:11,color:C.muted}}>{racha>=3?"¡Seguido ahorrando! Seguí así.":"Ahorrando seguido desde tu última quincena en 0"}</div>
@@ -1144,10 +1128,10 @@ function App() {
             return(
               <div style={cardStyle}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                  <div style={sectionTitle}>🎮 Saldo de Ocio</div>
+                  <div style={{...sectionTitle,display:"flex",alignItems:"center",gap:7}}><NavIcon name="gamepad" size={13} strokeWidth={1.8}/> Saldo de Ocio</div>
                   <span style={{fontSize:18,fontWeight:800,color:oc.saldo>=0?C.warn:C.danger,fontFamily:"monospace"}}>{fmt(oc.saldo)}</span>
                 </div>
-                <div style={{background:"rgba(255,255,255,0.1)",borderRadius:5,height:7,overflow:"hidden",marginBottom:8}}>
+                <div style={{background:"rgba(255,255,255,0.1)",borderRadius:4,height:4,overflow:"hidden",marginBottom:8}}>
                   <div style={{width:`${pctUsado}%`,height:"100%",background:`linear-gradient(90deg,${C.warn}55,${C.warn})`,borderRadius:5}}/>
                 </div>
                 <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:C.muted}}>
@@ -1192,10 +1176,10 @@ function App() {
           {/* Próximos vencimientos */}
           {(()=>{
             const items = [
-              {fecha:sumarMeses(hoyLocal(),0),tipo:"cobro",label:`Tu próximo cobro — Día ${prox.quincena}`,dias:prox.dias,icono:"💰"},
+              {fecha:sumarMeses(hoyLocal(),0),tipo:"cobro",label:`Tu próximo cobro — Día ${prox.quincena}`,dias:prox.dias,icono:"wallet"},
               ...prestamosDados.filter(p=>calcularInteresPrestamo(p).montoRestante>0&&p.fechaPago).map(p=>{
                 const dias = Math.ceil((new Date(p.fechaPago+"T12:00:00")-new Date())/86400000);
-                return {fecha:p.fechaPago,tipo:"prestamo",label:`${p.nombre} te debe pagar`,dias,icono:"💚"};
+                return {fecha:p.fechaPago,tipo:"prestamo",label:`${p.nombre} te debe pagar`,dias,icono:"heart"};
               }),
             ].filter(x=>x.dias>=-3).sort((a,b)=>a.dias-b.dias).slice(0,5);
             if(items.length===0) return null;
@@ -1205,7 +1189,7 @@ function App() {
                 {items.map((it,i)=>(
                   <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<items.length-1?`1px solid ${C.divider}`:"none"}}>
                     <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <span>{it.icono}</span>
+                      <span style={{display:"flex",color:it.dias<0?C.danger:C.mutedLight}}><NavIcon name={it.icono} size={15} strokeWidth={1.8}/></span>
                       <span style={{fontSize:12,color:C.text}}>{it.label}</span>
                     </div>
                     <span style={{fontSize:11,fontWeight:700,color:it.dias<0?C.danger:it.dias<=1?C.warn:C.muted}}>{it.dias<0?`${Math.abs(it.dias)}d atrasado`:it.dias===0?"Hoy":it.dias===1?"Mañana":`en ${it.dias}d`}</span>
@@ -1228,14 +1212,14 @@ function App() {
                       <span style={{fontSize:13,fontWeight:700}}>{m.nombre}</span>
                       <span style={{fontSize:12,fontWeight:700,color:C.accentDeep}}>{pct}%</span>
                     </div>
-                    <div style={{background:"rgba(255,255,255,0.1)",borderRadius:5,height:7,overflow:"hidden",marginBottom:6}}>
+                    <div style={{background:"rgba(255,255,255,0.1)",borderRadius:4,height:4,overflow:"hidden",marginBottom:6}}>
                       <div style={{width:`${pct}%`,height:"100%",background:`linear-gradient(90deg,${C.accent}33,${C.accentDeep})`,borderRadius:5}}/>
                     </div>
                     <div style={{fontSize:11,color:C.muted}}>{fmt(c.acumulado)} de {fmt(c.objetivo)}</div>
                     {c.quincenasRestantes&&c.falta>0&&<div style={{fontSize:11,color:c.vencida?C.danger:C.accentDeep,marginTop:3,fontWeight:600}}>
                       {c.vencida?"⚠️ Fecha ya pasada":`Necesitás ahorrar ${fmt(c.porQuincena)}/quincena para llegar a tiempo`}
                     </div>}
-                    {c.falta<=0&&<div style={{fontSize:11,color:C.accentDeep,marginTop:3,fontWeight:700}}>🎉 ¡Meta alcanzada!</div>}
+                    {c.falta<=0&&<div style={{fontSize:11,color:C.accentDeep,marginTop:3,fontWeight:700,display:"flex",alignItems:"center",gap:5}}><NavIcon name="sparkle" size={13} strokeWidth={1.8}/> ¡Meta alcanzada!</div>}
                     {showAporte===m.id?<div style={{display:"flex",gap:8,marginTop:8}}>
                       <input autoFocus type="text" inputMode="numeric" placeholder="Monto aportado" value={aporteInput} onChange={e=>setAporteInput(formatearMientrasEscribe(e.target.value))} style={{...inp,fontSize:13,fontFamily:"monospace",flex:1}}/>
                       <button onClick={()=>agregarAporte(m.id,aporteInput)} style={{padding:"0 14px",background:C.accentDeep,border:"none",borderRadius:9,color:C.white,fontSize:12,cursor:"pointer",fontWeight:700}}>OK</button>
@@ -1270,7 +1254,7 @@ function App() {
                 </div>
                 {Math.abs(pctDiff)>15?
                   <div style={{fontSize:12,color:C.warn,fontWeight:600}}>⚠️ Tu gasto real está {pctDiff>0?"":"un "}{Math.abs(pctDiff)}% {pctDiff>0?"por encima":"por debajo"} de lo estimado. Considerá ajustar el monto en Config → Variables.</div>
-                  :<div style={{fontSize:12,color:C.accentDeep,fontWeight:600}}>✅ Tu estimado está bien calculado (diferencia de solo {Math.abs(pctDiff)}%).</div>
+                  :<div style={{fontSize:12,color:C.accentDeep,fontWeight:600,display:"flex",alignItems:"center",gap:6}}><NavIcon name="checkCircle" size={14} strokeWidth={1.8}/> Tu estimado está bien calculado (diferencia de solo {Math.abs(pctDiff)}%).</div>
                 }
                 <div style={{fontSize:10,color:C.mutedLight,marginTop:8}}>Basado en {conDatos.length} quincena{conDatos.length!==1?"s":""} con gasto real cargado</div>
               </div>
@@ -1296,7 +1280,7 @@ function App() {
                   </div>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color:subio?C.accentDeep:C.danger,fontWeight:700}}>
-                  <span>{subio?"📈":"📉"}</span>
+                  <span style={{display:"flex"}}><NavIcon name={subio?"trendingUp":"trendingDown"} size={15} strokeWidth={2}/></span>
                   <span>{subio?"Subió":"Bajó"} {fmt(Math.abs(dif))} respecto a la anterior</span>
                 </div>
               </div>
@@ -1330,7 +1314,7 @@ function App() {
                       <span style={{fontSize:12,fontWeight:600}}>{f.label}</span>
                       <span style={{fontSize:11,fontWeight:700,color:C.accentDeep}}>{f.cuotas.pagadas}{f.cuotas.total?`/${f.cuotas.total}`:""}</span>
                     </div>
-                    {pct!==null&&<div style={{background:"rgba(255,255,255,0.1)",borderRadius:5,height:6,overflow:"hidden"}}>
+                    {pct!==null&&<div style={{background:"rgba(255,255,255,0.1)",borderRadius:4,height:4,overflow:"hidden"}}>
                       <div style={{width:`${pct}%`,height:"100%",background:`linear-gradient(90deg,${C.accent}33,${C.accentDeep})`,borderRadius:5}}/>
                     </div>}
                   </div>
@@ -1362,7 +1346,7 @@ function App() {
                     <span style={{fontSize:13,color:C.muted}}>Ahorrado</span>
                     <span style={{fontSize:14,fontWeight:700,color:C.accentDeep,fontFamily:"monospace"}}>{fmt(m.totalAhorro)}</span>
                   </div>
-                  <div style={{background:"rgba(255,255,255,0.1)",borderRadius:6,height:9,overflow:"hidden",marginBottom:6}}>
+                  <div style={{background:"rgba(255,255,255,0.1)",borderRadius:4,height:4,overflow:"hidden",marginBottom:6}}>
                     <div style={{width:`${Math.min(100,pctAhorro)}%`,height:"100%",background:`linear-gradient(90deg,${C.accent}33,${C.accentDeep})`,borderRadius:6}}/>
                   </div>
                   <div style={{fontSize:11,color:C.muted}}>Ahorraste el <strong style={{color:C.accentDeep}}>{pctAhorro}%</strong> de lo que ingresó este mes</div>
@@ -1437,7 +1421,7 @@ function App() {
             </div>
             {!usarPcts?<div style={{fontSize:13,color:C.muted}}>Todo va a <strong style={{color:C.accentDeep}}>{cn("ahorro")}</strong></div>
             :<>
-              {[{key:"ahorro",label:`💚 ${cn("ahorro")}`,color:C.accentDeep},{key:"ocio",label:"🟡 Ocio",color:C.warn},{key:"emergencia",label:"🔵 Emergencia",color:C.info}].map(({key,label,color})=>(
+              {[{key:"ahorro",label:`${cn("ahorro")}`,icon:"heart",color:C.accentDeep},{key:"ocio",label:"Ocio",icon:"gamepad",color:C.warn},{key:"emergencia",label:"Emergencia",icon:"alertCircle",color:C.info}].map(({key,label,color})=>(
                 <div key={key} style={{marginBottom:16}}>
                   <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:13,fontWeight:500}}>{label}</span><span style={{fontSize:14,fontWeight:800,color}}>{pcts[key]}%</span></div>
                   <input type="range" min={0} max={100} value={pcts[key]} onChange={e=>setPcts(p=>({...p,[key]:Number(e.target.value)}))} style={{width:"100%",accentColor:color}}/>
@@ -1450,10 +1434,10 @@ function App() {
           <button onClick={calcular} style={{width:"100%",padding:"17px 0",background:`linear-gradient(135deg,${C.accentDeep},${C.accent})`,border:"none",borderRadius:14,color:C.white,fontWeight:800,fontSize:16,cursor:"pointer",marginBottom:16,boxShadow:"0 4px 14px rgba(15,157,88,0.3)"}}>Calcular distribución</button>
 
           {resultado&&<>
-            {resultado.alertas.length===0&&<div style={{background:C.accentSoft,border:`1px solid #a7e8c5`,borderRadius:14,padding:"13px 16px",marginBottom:12,fontSize:13,color:C.accentDeep,display:"flex",gap:9,fontWeight:500}}><span>✅</span><span>Quincena sana. {fmt(resultado.dist.ahorro)} van a {cn("ahorro")}.</span></div>}
+            {resultado.alertas.length===0&&<div style={{background:C.accentSoft,border:`1px solid #a7e8c5`,borderRadius:14,padding:"13px 16px",marginBottom:12,fontSize:13,color:C.accentDeep,display:"flex",gap:9,fontWeight:500}}><span style={{display:"flex"}}><NavIcon name="checkCircle" size={16} strokeWidth={1.8}/></span><span>Quincena sana. {fmt(resultado.dist.ahorro)} van a {cn("ahorro")}.</span></div>}
             {resultado.alertas.map((a,i)=>(
               <div key={i} style={{background:a.tipo==="danger"?C.dangerSoft:C.warnSoft,border:`1px solid ${a.tipo==="danger"?"#f3b8b8":"#f3d49a"}`,borderRadius:14,padding:"13px 16px",marginBottom:10,fontSize:13,color:a.tipo==="danger"?C.danger:C.warn,display:"flex",gap:9,fontWeight:500}}>
-                <span>{a.tipo==="danger"?"⛔":"⚠️"}</span><span>{a.msg}</span>
+                <span style={{display:"flex"}}><NavIcon name={a.tipo==="danger"?"alertCircle":"alertTriangle"} size={16} strokeWidth={2}/></span><span>{a.msg}</span>
               </div>
             ))}
             <div style={cardStyle}>
@@ -1465,9 +1449,9 @@ function App() {
                   <div style={{width:`${Math.max(0,(resultado.dist.ahorro/resultado.total)*100)}%`,background:`linear-gradient(90deg,${C.accent}33,${C.accentDeep})`}}/>
                 </div>
                 <div style={{display:"flex",gap:14,fontSize:10,color:C.muted,fontWeight:600}}>
-                  <span>🔴 Fijos {Math.round((resultado.totalFijos/resultado.total)*100)}%</span>
-                  <span>🟡 Variables {Math.round((resultado.totalVars/resultado.total)*100)}%</span>
-                  <span style={{color:C.accentDeep,fontWeight:800}}>🟢 Ahorro {Math.round((resultado.dist.ahorro/resultado.total)*100)}%</span>
+                  <span style={{display:"inline-flex",alignItems:"center",gap:4}}><span style={{width:6,height:6,borderRadius:"50%",background:C.danger,display:"inline-block"}}/>Fijos {Math.round((resultado.totalFijos/resultado.total)*100)}%</span>
+                  <span style={{display:"inline-flex",alignItems:"center",gap:4}}><span style={{width:6,height:6,borderRadius:"50%",background:C.warn,display:"inline-block"}}/>Variables {Math.round((resultado.totalVars/resultado.total)*100)}%</span>
+                  <span style={{color:C.accentDeep,fontWeight:800,display:"inline-flex",alignItems:"center",gap:4}}><span style={{width:6,height:6,borderRadius:"50%",background:C.accent,display:"inline-block"}}/>Ahorro {Math.round((resultado.dist.ahorro/resultado.total)*100)}%</span>
                 </div>
               </div>}
               {[
@@ -1638,7 +1622,7 @@ function App() {
 
           {/* Préstamos que le diste a otros */}
           <div style={{marginTop:20,marginBottom:12}}>
-            <div style={{...sectionTitle,marginBottom:8}}>💚 Préstamos que diste</div>
+            <div style={{...sectionTitle,marginBottom:8,display:"flex",alignItems:"center",gap:7}}><NavIcon name="heart" size={13} strokeWidth={1.8}/> Préstamos que diste</div>
             <div style={{fontSize:11,color:C.muted,marginBottom:12}}>Plata que le prestaste a alguien y te está devolviendo en cuotas. Suma como activo en tu patrimonio neto.</div>
           </div>
 
@@ -1731,7 +1715,7 @@ function App() {
                     <span style={{fontSize:11,color:C.muted,fontWeight:600}}>Progreso de cobro</span>
                     <span style={{fontSize:11,fontWeight:700,color:C.info}}>{info.pctPagado}%</span>
                   </div>
-                  <div style={{background:"rgba(255,255,255,0.1)",borderRadius:5,height:7,overflow:"hidden",marginBottom:8}}>
+                  <div style={{background:"rgba(255,255,255,0.1)",borderRadius:4,height:4,overflow:"hidden",marginBottom:8}}>
                     <div style={{width:`${info.pctPagado}%`,height:"100%",background:`linear-gradient(90deg,${C.info}55,${C.info})`,borderRadius:5}}/>
                   </div>
                   <div style={{display:"flex",gap:12,fontSize:11,color:C.muted,flexWrap:"wrap"}}>
@@ -1782,7 +1766,7 @@ function App() {
                     <button onClick={()=>{setShowMarcarCobro(null);setMontoCobroInput("");}} style={{flex:1,padding:"9px 0",background:C.card,border:`1px solid ${C.cardBorder}`,borderRadius:9,color:C.muted,fontSize:12,cursor:"pointer"}}>Cancelar</button>
                   </div>
                 </div>}
-                {completo&&<div style={{marginTop:10,textAlign:"center",fontSize:12,color:C.accent,fontWeight:700}}>🎉 Préstamo cobrado por completo</div>}
+                {completo&&<div style={{marginTop:10,textAlign:"center",fontSize:12,color:C.accent,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}><NavIcon name="sparkle" size={14} strokeWidth={1.8}/> Préstamo cobrado por completo</div>}
                 </>}
               </div>
             );
@@ -1791,7 +1775,7 @@ function App() {
 
         {tab==="historial"&&<>
           <button onClick={()=>setShowFiltroHistorial(!showFiltroHistorial)} style={{width:"100%",padding:"12px 14px",marginBottom:14,background:C.card,border:`1.5px solid ${C.cardBorder}`,borderRadius:14,color:C.text,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span>🔍 {[{id:"todos",label:"Todos los movimientos"},{id:"mes",label:"Por mes"},{id:"quincena",label:"Quincenas"},{id:"año",label:"Por año"},{id:"extras",label:"Extras"},{id:"retiros",label:"Retiros"}].find(x=>x.id===subTabH)?.label}{rangoDesde?` · ${rangoDesde} a ${rangoHasta}`:""}</span>
+            <span style={{display:"inline-flex",alignItems:"center",gap:6}}><NavIcon name="search" size={13} strokeWidth={2}/> {[{id:"todos",label:"Todos los movimientos"},{id:"mes",label:"Por mes"},{id:"quincena",label:"Quincenas"},{id:"año",label:"Por año"},{id:"extras",label:"Extras"},{id:"retiros",label:"Retiros"}].find(x=>x.id===subTabH)?.label}{rangoDesde?` · ${rangoDesde} a ${rangoHasta}`:""}</span>
             <span style={{color:C.muted}}>{showFiltroHistorial?"▲":"▼"}</span>
           </button>
 
@@ -1822,9 +1806,9 @@ function App() {
             {(()=>{
               function parseFechaPY(f){ const p=f?.split("/"); if(!p||p.length!==3) return new Date(0); return new Date(p[2],p[1]-1,p[0]); }
               const movimientos = [
-                ...histF.map(h=>({tipo:"quincena",fecha:h.fecha,icono:"📅",label:`Quincena Día ${h.quincena}`,sub:`Ingreso ${fmt(h.total)}`,monto:h.ahorro,color:C.accentDeep,item:h})),
-                ...extrasF.filter(e=>e.destino!=="quincena").map(e=>({tipo:"extra",fecha:e.fecha,icono:"➕",label:e.desc,sub:`→ ${destinoLabel(e.destino)}`,monto:e.monto,color:C.purple,item:e})),
-                ...filtrar(retiros).map(r=>({tipo:"retiro",fecha:r.fecha,icono:"🚨",label:r.motivo,sub:"Retiro de "+cn("ahorro"),monto:-r.monto,color:C.danger,item:r})),
+                ...histF.map(h=>({tipo:"quincena",fecha:h.fecha,icono:"calendar",label:`Quincena Día ${h.quincena}`,sub:`Ingreso ${fmt(h.total)}`,monto:h.ahorro,color:C.accentDeep,item:h})),
+                ...extrasF.filter(e=>e.destino!=="quincena").map(e=>({tipo:"extra",fecha:e.fecha,icono:"plusCircle",label:e.desc,sub:`→ ${destinoLabel(e.destino)}`,monto:e.monto,color:C.purple,item:e})),
+                ...filtrar(retiros).map(r=>({tipo:"retiro",fecha:r.fecha,icono:"alertCircle",label:r.motivo,sub:"Retiro de "+cn("ahorro"),monto:-r.monto,color:C.danger,item:r})),
               ].sort((a,b)=>parseFechaPY(b.fecha)-parseFechaPY(a.fecha));
               if(movimientos.length===0) return <div style={{textAlign:"center",color:C.muted,padding:"56px 0"}}><div style={{width:56,height:56,borderRadius:"50%",background:C.card,border:`1px solid ${C.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",color:C.mutedLight}}><NavIcon name="list" size={24} strokeWidth={1.5}/></div><div style={{fontSize:13,fontWeight:600}}>Sin movimientos registrados</div><div style={{fontSize:11,color:C.mutedLight,marginTop:4}}>Tus quincenas, extras y retiros van a aparecer acá</div></div>;
               return movimientos.map((m,i)=>{
@@ -1832,7 +1816,7 @@ function App() {
                 return(
                 <div key={i} onClick={()=>setMovExpandido(isExpanded?null:i)} style={{...cardStyleFlat,cursor:"pointer"}}>
                   <div style={{display:"flex",alignItems:"center",gap:12}}>
-                    <div style={{width:38,height:38,borderRadius:11,background:m.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{m.icono}</div>
+                    <div style={{width:38,height:38,borderRadius:11,background:m.color+"22",display:"flex",alignItems:"center",justifyContent:"center",color:m.color,flexShrink:0}}><NavIcon name={m.icono} size={17} strokeWidth={1.8}/></div>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:13,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{m.label}</div>
                       <div style={{fontSize:10,color:C.muted}}>{m.fecha} · {m.sub}</div>
@@ -1865,7 +1849,7 @@ function App() {
           </>}
 
           {subTabH==="mes"&&<>
-            {mesesA.length===0?<div style={{textAlign:"center",color:C.muted,padding:"50px 0"}}><div style={{fontSize:38,marginBottom:12}}>📊</div>Sin datos.</div>:<>
+            {mesesA.length===0?<div style={{textAlign:"center",color:C.muted,padding:"50px 0"}}><div style={{width:56,height:56,borderRadius:"50%",background:C.card,border:`1px solid ${C.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",color:C.mutedLight}}><NavIcon name="chart" size={24} strokeWidth={1.5}/></div><div style={{fontSize:13,fontWeight:600}}>Sin datos</div></div>:<>
               {mesesA.length>1&&<div style={cardStyle}>
                 <div style={sectionTitle}>Evolución de ahorro</div>
                 <div style={{display:"flex",alignItems:"flex-end",gap:6,height:80}}>
@@ -1894,7 +1878,7 @@ function App() {
           </>}
 
           {subTabH==="quincena"&&<>
-            {histF.length===0?<div style={{textAlign:"center",color:C.muted,padding:"50px 0"}}><div style={{fontSize:38,marginBottom:12}}>📅</div>Sin quincenas.</div>
+            {histF.length===0?<div style={{textAlign:"center",color:C.muted,padding:"50px 0"}}><div style={{width:56,height:56,borderRadius:"50%",background:C.card,border:`1px solid ${C.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",color:C.mutedLight}}><NavIcon name="calendar" size={24} strokeWidth={1.5}/></div><div style={{fontSize:13,fontWeight:600}}>Sin quincenas</div></div>
             :<>
             {histF.length>1&&<div style={cardStyle}>
               <div style={sectionTitle}>Evolución por quincena</div>
@@ -1950,7 +1934,7 @@ function App() {
           {subTabH==="año"&&<>
             {(()=>{
               const añosF = agruparAño(histF, extrasF);
-              if(añosF.length===0) return <div style={{textAlign:"center",color:C.muted,padding:"50px 0"}}><div style={{fontSize:38,marginBottom:12}}>📆</div>Sin datos.</div>;
+              if(añosF.length===0) return <div style={{textAlign:"center",color:C.muted,padding:"50px 0"}}><div style={{width:56,height:56,borderRadius:"50%",background:C.card,border:`1px solid ${C.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",color:C.mutedLight}}><NavIcon name="calendar" size={24} strokeWidth={1.5}/></div><div style={{fontSize:13,fontWeight:600}}>Sin datos</div></div>;
               return <>
                 {añosF.length>1&&<div style={cardStyle}>
                   <div style={sectionTitle}>Comparativo por año</div>
@@ -1991,8 +1975,8 @@ function App() {
               <input style={{...inp,marginBottom:9}} placeholder="Descripción" value={nuevoExtra.desc} onChange={e=>setNuevoExtra(p=>({...p,desc:e.target.value}))}/>
               <div style={{fontSize:11,color:C.muted,marginBottom:7,fontWeight:600}}>Categoría (opcional)</div>
               <div style={{display:"flex",gap:6,marginBottom:11,flexWrap:"wrap"}}>
-                {[{id:"venta",label:"🏷️ Venta"},{id:"changa",label:"🔨 Changa"},{id:"regalo",label:"🎁 Regalo"},{id:"otro",label:"📦 Otro"}].map(c=>(
-                  <button key={c.id} onClick={()=>setNuevoExtra(p=>({...p,categoria:p.categoria===c.id?"":c.id}))} style={{padding:"6px 11px",borderRadius:8,border:`1.5px solid ${nuevoExtra.categoria===c.id?C.accentDeep:C.cardBorder}`,background:nuevoExtra.categoria===c.id?C.accentSoft:"transparent",color:nuevoExtra.categoria===c.id?C.accentDeep:C.muted,fontSize:11,cursor:"pointer",fontWeight:600}}>{c.label}</button>
+                {[{id:"venta",label:"Venta",icon:"tag"},{id:"changa",label:"Changa",icon:"hammer"},{id:"regalo",label:"Regalo",icon:"gift"},{id:"otro",label:"Otro",icon:"box"}].map(c=>(
+                  <button key={c.id} onClick={()=>setNuevoExtra(p=>({...p,categoria:p.categoria===c.id?"":c.id}))} style={{padding:"6px 11px",borderRadius:8,border:`1.5px solid ${nuevoExtra.categoria===c.id?C.accentDeep:C.cardBorder}`,background:nuevoExtra.categoria===c.id?C.accentSoft:"transparent",color:nuevoExtra.categoria===c.id?C.accentDeep:C.muted,fontSize:11,cursor:"pointer",fontWeight:600,display:"inline-flex",alignItems:"center",gap:5}}><NavIcon name={c.icon} size={12} strokeWidth={1.8}/>{c.label}</button>
                 ))}
               </div>
               <input style={{...inp,fontFamily:"monospace",marginBottom:11}} type="text" inputMode="numeric" placeholder="Monto en Gs." value={nuevoExtra.monto} onChange={e=>setNuevoExtra(p=>({...p,monto:formatearMientrasEscribe(e.target.value)}))}/>
@@ -2000,7 +1984,7 @@ function App() {
               <div style={{marginBottom:11}}><DateSelector value={nuevoExtra.fecha} onChange={v=>setNuevoExtra(p=>({...p,fecha:v}))} styleInp={inp}/></div>
               <div style={{fontSize:11,color:C.muted,marginBottom:7,fontWeight:600}}>Destino</div>
               <div style={{display:"flex",gap:8,marginBottom:13}}>
-                {[{id:"ahorro",label:`💚 ${cn("ahorro")}`},{id:"ocio",label:"🟡 Ocio"},{id:"operativa",label:`🔵 ${cn("operativa")}`}].map(d=>(
+                {[{id:"ahorro",label:`${cn("ahorro")}`},{id:"ocio",label:"Ocio"},{id:"operativa",label:`${cn("operativa")}`}].map(d=>(
                   <button key={d.id} onClick={()=>setNuevoExtra(p=>({...p,destino:d.id}))} style={{flex:1,padding:"9px 4px",borderRadius:9,border:`1.5px solid ${nuevoExtra.destino===d.id?C.accentDeep:C.cardBorder}`,background:nuevoExtra.destino===d.id?C.accentSoft:"transparent",color:nuevoExtra.destino===d.id?C.accentDeep:C.muted,fontSize:11,cursor:"pointer",fontWeight:nuevoExtra.destino===d.id?800:500}}>{d.label}</button>
                 ))}
               </div>
@@ -2010,7 +1994,7 @@ function App() {
               </div>
             </div>}
             {!showAddExtra&&extrasF.length===0&&<div style={{textAlign:"center",color:C.mutedLight,padding:"6px 0 14px",fontSize:11}}>Usá el botón "+" de la barra para registrar un ingreso extra.</div>}
-            {extrasF.length===0?<div style={{textAlign:"center",color:C.muted,padding:"50px 0"}}><div style={{fontSize:38,marginBottom:12}}>➕</div>Sin extras en este período.</div>
+            {extrasF.length===0?<div style={{textAlign:"center",color:C.muted,padding:"50px 0"}}><div style={{width:56,height:56,borderRadius:"50%",background:C.card,border:`1px solid ${C.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",color:C.mutedLight}}><NavIcon name="plusCircle" size={24} strokeWidth={1.5}/></div><div style={{fontSize:13,fontWeight:600}}>Sin extras en este período</div></div>
             :extrasF.map(e=>(
               <div key={e.id} style={cardStyle}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -2029,7 +2013,7 @@ function App() {
               <div style={{fontSize:11,color:C.danger,fontWeight:700,marginBottom:4}}>Total retirado de {cn("ahorro")}</div>
               <div style={{fontSize:20,fontWeight:800,color:C.danger,fontFamily:"monospace"}}>{fmt(totalRetirado)}</div>
             </div>}
-            {retiros.length===0?<div style={{textAlign:"center",color:C.muted,padding:"50px 0"}}><div style={{fontSize:38,marginBottom:12}}>🚨</div>Sin retiros registrados.</div>
+            {retiros.length===0?<div style={{textAlign:"center",color:C.muted,padding:"50px 0"}}><div style={{width:56,height:56,borderRadius:"50%",background:C.card,border:`1px solid ${C.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",color:C.mutedLight}}><NavIcon name="alertCircle" size={24} strokeWidth={1.5}/></div><div style={{fontSize:13,fontWeight:600}}>Sin retiros registrados</div></div>
             :retiros.map(r=>(
               <div key={r.id} style={cardStyle}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -2084,7 +2068,7 @@ function App() {
                         const tieneC=f.cuotas?.activo;
                         setList(list.map(x=>x.id===f.id?{...x,cuotas:tieneC?null:{activo:true,pagadas:0,total:null}}:x));
                         tk(tieneC?"Cuotas desactivadas":"Cuotas activadas");
-                      }} style={{background:f.cuotas?.activo?C.accentSoft:C.bg,border:`1px solid ${f.cuotas?.activo?"#a7e8c5":C.cardBorder}`,borderRadius:20,padding:"5px 13px",fontSize:10,color:f.cuotas?.activo?C.accentDeep:C.muted,cursor:"pointer",fontWeight:700}}>{f.cuotas?.activo?"📊 Cuotas activas":"+ Activar cuotas"}</button>
+                      }} style={{background:f.cuotas?.activo?C.accentSoft:C.bg,border:`1px solid ${f.cuotas?.activo?"#a7e8c5":C.cardBorder}`,borderRadius:20,padding:"5px 13px",fontSize:10,color:f.cuotas?.activo?C.accentDeep:C.muted,cursor:"pointer",fontWeight:700,display:"inline-flex",alignItems:"center",gap:5}}>{f.cuotas?.activo?<><NavIcon name="chart" size={11} strokeWidth={2}/>Cuotas activas</>:"+ Activar cuotas"}</button>
                     </div>}
                   </div>
                 ))}
@@ -2155,14 +2139,14 @@ function App() {
                 <div style={{fontSize:18,fontWeight:800,fontFamily:"monospace",color:ahorroInicial?C.accent:C.muted}}>{ahorroInicial?fmt(ahorroInicial):"Sin cargar"}</div>
                 <div style={{display:"flex",gap:6}}>
                   <button onClick={()=>{setAhorroInicialInput(ahorroInicial?new Intl.NumberFormat("es-PY").format(ahorroInicial):"");setEditAhorroInicial(true);}} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:10,width:34,height:34,fontSize:15,color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
-                  {ahorroInicial>0&&<button onClick={()=>{if(window.confirm("¿Eliminar el ahorro inicial cargado? Esto resta ese monto de tu total.")){setAhorroInicial(0);tk("Ahorro inicial eliminado");}}} style={{background:C.dangerSoft,border:"none",borderRadius:10,width:34,height:34,fontSize:15,color:C.danger,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>🗑️</button>}
+                  {ahorroInicial>0&&<button onClick={()=>{if(window.confirm("¿Eliminar el ahorro inicial cargado? Esto resta ese monto de tu total.")){setAhorroInicial(0);tk("Ahorro inicial eliminado");}}} style={{background:C.dangerSoft,border:"none",borderRadius:10,width:34,height:34,fontSize:15,color:C.danger,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><NavIcon name="trash" size={15} strokeWidth={1.8}/></button>}
                 </div>
               </div>
             </>}
           </div>
 
           <div style={cardStyle}>
-            <div style={{...sectionTitle,marginBottom:6}}>🐄 Ganadería — {cn("ganaderia")}</div>
+            <div style={{...sectionTitle,marginBottom:6,display:"flex",alignItems:"center",gap:7}}><NavIcon name="sprout" size={13} strokeWidth={1.8}/> Ganadería — {cn("ganaderia")}</div>
             <div style={{fontSize:12,color:C.muted,marginBottom:16,fontWeight:500}}>El monto de este pago cambió con el tiempo, así que acá cargás directamente cuánto ya diste en total (no por cuotas). Cada quincena que guardes con Ganadería activa, se suma sola el monto real de ese momento.</div>
             {editGanaderiaInicial?<>
               <input style={{...inp,fontFamily:"monospace",marginBottom:10}} type="text" inputMode="numeric" placeholder="Ej: 1.500.000" value={ganaderiaInicialInput} onChange={e=>setGanaderiaInicialInput(formatearMientrasEscribe(e.target.value))}/>
@@ -2178,7 +2162,7 @@ function App() {
                 </div>
                 <div style={{display:"flex",gap:6}}>
                   <button onClick={()=>{setGanaderiaInicialInput(ganaderiaInicial?new Intl.NumberFormat("es-PY").format(ganaderiaInicial):"");setEditGanaderiaInicial(true);}} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:10,width:34,height:34,fontSize:15,color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
-                  {ganaderiaInicial>0&&<button onClick={()=>{if(window.confirm("¿Eliminar el monto inicial de ganadería?")){setGanaderiaInicial(0);tk("Eliminado");}}} style={{background:C.dangerSoft,border:"none",borderRadius:10,width:34,height:34,fontSize:15,color:C.danger,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>🗑️</button>}
+                  {ganaderiaInicial>0&&<button onClick={()=>{if(window.confirm("¿Eliminar el monto inicial de ganadería?")){setGanaderiaInicial(0);tk("Eliminado");}}} style={{background:C.dangerSoft,border:"none",borderRadius:10,width:34,height:34,fontSize:15,color:C.danger,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><NavIcon name="trash" size={15} strokeWidth={1.8}/></button>}
                 </div>
               </div>
               <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${C.divider}`,fontSize:11,color:C.muted}}>
@@ -2202,7 +2186,7 @@ function App() {
                 <div style={{fontSize:18,fontWeight:800,fontFamily:"monospace",color:meta?C.accent:C.muted}}>{meta?fmt(meta):"Sin meta configurada"}</div>
                 <div style={{display:"flex",gap:6}}>
                   <button onClick={()=>{setMetaInput(meta?new Intl.NumberFormat("es-PY").format(meta):"");setEditMetaGeneral(true);}} style={{background:C.bg,border:`1px solid ${C.cardBorder}`,borderRadius:10,width:34,height:34,fontSize:15,color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
-                  {meta&&<button onClick={()=>{if(window.confirm("¿Eliminar la meta general de ahorro?")){setMeta(null);tk("Meta eliminada");}}} style={{background:C.dangerSoft,border:"none",borderRadius:10,width:34,height:34,fontSize:15,color:C.danger,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>🗑️</button>}
+                  {meta&&<button onClick={()=>{if(window.confirm("¿Eliminar la meta general de ahorro?")){setMeta(null);tk("Meta eliminada");}}} style={{background:C.dangerSoft,border:"none",borderRadius:10,width:34,height:34,fontSize:15,color:C.danger,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><NavIcon name="trash" size={15} strokeWidth={1.8}/></button>}
                 </div>
               </div>
             </>}
@@ -2290,15 +2274,15 @@ function App() {
 
           {subTabC==="backup"&&<>
             <div style={{...cardStyle,padding:22}}>
-              <div style={{fontSize:15,fontWeight:800,marginBottom:8}}>💾 Exportar respaldo</div>
+              <div style={{fontSize:15,fontWeight:800,marginBottom:8,display:"flex",alignItems:"center",gap:8}}><NavIcon name="save" size={16} strokeWidth={1.8}/> Exportar respaldo</div>
               <div style={{fontSize:13,color:C.muted,marginBottom:18,fontWeight:500}}>Descargá un archivo .json con todo tu historial, configuración y cuotas.</div>
-              <button onClick={exportarBackup} style={{width:"100%",padding:"15px 0",background:`linear-gradient(135deg,${C.accentDeep},${C.accent})`,border:"none",borderRadius:13,color:C.white,fontWeight:700,fontSize:15,cursor:"pointer",boxShadow:"0 4px 14px rgba(15,157,88,0.25)"}}>📥 Descargar respaldo</button>
+              <button onClick={exportarBackup} style={{width:"100%",padding:"15px 0",background:`linear-gradient(135deg,${C.accentDeep},${C.accent})`,border:"none",borderRadius:13,color:C.white,fontWeight:700,fontSize:15,cursor:"pointer",boxShadow:"0 4px 14px rgba(15,157,88,0.25)"}}><NavIcon name="download" size={16} strokeWidth={1.8}/> Descargar respaldo</button>
               <button onClick={()=>setShowBackupTexto(true)} style={{width:"100%",marginTop:10,padding:"11px 0",background:"transparent",border:`1px solid ${C.cardBorder}`,borderRadius:11,color:C.muted,fontWeight:600,fontSize:12,cursor:"pointer"}}>¿No descarga? Ver como texto</button>
             </div>
             <div style={{...cardStyle,padding:22}}>
-              <div style={{fontSize:15,fontWeight:800,marginBottom:8}}>📤 Restaurar respaldo</div>
+              <div style={{fontSize:15,fontWeight:800,marginBottom:8,display:"flex",alignItems:"center",gap:8}}><NavIcon name="upload" size={16} strokeWidth={1.8}/> Restaurar respaldo</div>
               <div style={{fontSize:13,color:C.muted,marginBottom:18,fontWeight:500}}><strong style={{color:C.danger}}>Esto reemplaza los datos actuales.</strong> Exportá primero si tenés datos nuevos.</div>
-              <button onClick={()=>fileRef.current?.click()} style={{width:"100%",padding:"15px 0",background:C.bg,border:`1.5px solid ${C.cardBorder}`,borderRadius:13,color:C.text,fontWeight:700,fontSize:15,cursor:"pointer"}}>📂 Cargar archivo</button>
+              <button onClick={()=>fileRef.current?.click()} style={{width:"100%",padding:"15px 0",background:C.bg,border:`1.5px solid ${C.cardBorder}`,borderRadius:13,color:C.text,fontWeight:700,fontSize:15,cursor:"pointer"}}><NavIcon name="folder" size={16} strokeWidth={1.8}/> Cargar archivo</button>
               <button onClick={()=>setShowRestaurarTexto(true)} style={{width:"100%",marginTop:10,padding:"11px 0",background:"transparent",border:`1px solid ${C.cardBorder}`,borderRadius:11,color:C.muted,fontWeight:600,fontSize:12,cursor:"pointer"}}>¿No carga? Pegar texto</button>
             </div>
             <div style={{background:C.warnSoft,border:`1px solid #f3d49a`,borderRadius:14,padding:"13px 16px",fontSize:12,color:C.warn,fontWeight:500}}>⚠️ Exportá un respaldo regularmente. Guarda historial, cuotas, cuentas y toda la configuración.</div>
