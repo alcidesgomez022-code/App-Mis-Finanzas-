@@ -39,7 +39,7 @@ async function sSet(k, v) {
   catch (err) { try{ window.dispatchEvent(new CustomEvent("finanzas-storage-error",{detail:err&&err.name})); }catch{} return false; }
 }
 
-const APP_VERSION = "2.2";
+const APP_VERSION = "2.6";
 const NOVEDADES = [
   // Agregá acá cada cosa nueva. El "id" tiene que ser único y no repetirse nunca.
   { id:"nv1", titulo:"Saldo de Ocio", texto:"Ahora podés ver cuánto te queda disponible para gastar en Ocio, acumulado mes a mes." },
@@ -49,6 +49,9 @@ const NOVEDADES = [
   { id:"nv5", titulo:"Perfil rápido", texto:"Tocá el círculo de tu iniciales en Inicio para ver tu perfil y editarlo, sin ir a Config. También sacamos la campanita — mostraba info duplicada." },
   { id:"nv6", titulo:"Ordená tu Inicio", texto:"En Config → Orden Inicio podés reordenar y ocultar las tarjetas de tu pantalla principal como más te sirva." },
   { id:"nv7", titulo:"Fecha propia por pago", texto:"Cada pago fijo ahora puede tener su propia fecha de vencimiento (Config → Pagos). Solo se marca como atrasado si ya pasó SU fecha, no la de toda la quincena." },
+  { id:"nv8", titulo:"Historial completo", texto:"Los retiros de Ocio y los cobros de préstamos ahora aparecen en Historial → Todos los movimientos, junto con todo lo demás." },
+  { id:"nv9", titulo:"Quincenas más compactas", texto:"Las tarjetas de quincena en Historial ahora se ven colapsadas por defecto — tocá para ver el detalle. Y agregamos 'Marcar todo pagado' para ir más rápido." },
+  { id:"nv10", titulo:"Cada pago con su fecha, y buscador", texto:"Cada pago que tildás ahora queda registrado con su fecha real en Todos los movimientos. Y agregamos un buscador arriba de la lista." },
 ];
 const D_CUENTAS = { cerebro:"EKO", operativa:"Itaú", credito:"Ueno", ahorro:"Continental", ganaderia:"Mango", mutual:"Caja Mutual" };
 const INICIO_CARDS = [
@@ -187,6 +190,7 @@ const ICONS = {
   folder: <path d="M3.5 6.5A1.5 1.5 0 0 1 5 5h4.5l2 2.5H19a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 19 19.5H5A1.5 1.5 0 0 1 3.5 18Z"/>,
   bell: <><path d="M6 9a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 13 6 9Z"/><path d="M10 19a2 2 0 0 0 4 0"/></>,
   plus: <path d="M12 5v14M5 12h14"/>,
+  circleDash: <><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12h7"/></>,
 };
 function NavIcon({ name, size, color, strokeWidth }){ return <Icon path={ICONS[name]} size={size} color={color} strokeWidth={strokeWidth}/>; }
 
@@ -286,6 +290,8 @@ function App() {
   const [deudaExpandida, setDeudaExpandida] = useState(null);
   const [prestamoExpandido, setPrestamoExpandido] = useState(null);
   const [movExpandido, setMovExpandido] = useState(null);
+  const [quincenaExpandida, setQuincenaExpandida] = useState(null);
+  const [buscarHistorial, setBuscarHistorial] = useState("");
   const [showNuevaDeuda, setShowNuevaDeuda] = useState(false);
   const [nuevaDeuda, setNuevaDeuda] = useState({nombre:"",dia:"18",monto:"",totalCuotas:"",capital:""});
   const [prestamosDados, setPrestamosDados] = useState([]);
@@ -415,7 +421,7 @@ function App() {
     const acumMango = ganaderiaInicial + aportesGanaderia.reduce((a,x)=>a+(x.monto||0),0);
     const porCobrar = prestamosDados.reduce((a,p)=>{
       const montoCobrado = (p.pagos||[]).reduce((s,x)=>s+(x.monto||0),0);
-      const montoTotal = p.montoTotalAPagar || (p.monto*p.totalCuotas) || 0;
+      const montoTotal = p.montoTotalAPagar || 0;
       return a + Math.max(0, montoTotal-montoCobrado);
     },0);
     const activos = totalAhorrado + acumMango + acumMutual + porCobrar;
@@ -513,7 +519,7 @@ function App() {
   function agregarAporte(metaId, monto){
     const m = Number(soloDigitos(monto))||0;
     if(m<=0) return;
-    setMetasExtra(metasExtra.map(x=>x.id===metaId?{...x,contribuciones:[...(x.contribuciones||[]),{id:Date.now(),fecha:hoyLocal(),monto:m}]}:x));
+    setMetasExtra(metasExtra.map(x=>x.id===metaId?{...x,contribuciones:[...(x.contribuciones||[]),{id:Date.now(),fecha:new Date().toLocaleDateString("es-PY"),monto:m}]}:x));
     setShowAporte(null); setAporteInput("");
     tk("✓ Aporte registrado");
   }
@@ -608,7 +614,7 @@ function App() {
       Object.entries(recordatorioAporte.aportes).forEach(([metaId,monto])=>{
         const m = Number(soloDigitos(monto))||0;
         if(m>0){
-          setMetasExtra(prev=>prev.map(x=>x.id===Number(metaId)?{...x,contribuciones:[...(x.contribuciones||[]),{id:Date.now(),fecha:hoyLocal(),monto:m}]}:x));
+          setMetasExtra(prev=>prev.map(x=>x.id===Number(metaId)?{...x,contribuciones:[...(x.contribuciones||[]),{id:Date.now(),fecha:new Date().toLocaleDateString("es-PY"),monto:m}]}:x));
         }
       });
     }
@@ -621,14 +627,24 @@ function App() {
     haptic(8);
     setHistorial(h=>h.map(item=>{
       if(item.id!==historialId) return item;
-      const nuevosPagos = item.pagos.map((p,i)=>i===pagoIndex?{...p,done:!p.done}:p);
+      const nuevosPagos = item.pagos.map((p,i)=>{
+        if(i!==pagoIndex) return p;
+        const nuevoDone = !p.done;
+        return {...p, done:nuevoDone, fechaPagado: nuevoDone ? new Date().toLocaleDateString("es-PY") : null};
+      });
       return {...item,pagos:nuevosPagos};
     }));
+  }
+  function marcarTodoPagado(historialId){
+    haptic(15);
+    const hoy = new Date().toLocaleDateString("es-PY");
+    setHistorial(h=>h.map(item=>item.id===historialId?{...item,pagos:item.pagos.map(p=>p.done?p:{...p,done:true,fechaPagado:hoy})}:item));
+    tk("✓ Todo marcado como pagado");
   }
 
   function agregarExtra(){ if(!nuevoExtra.desc||!nuevoExtra.monto)return; const fechaFmt=new Date(nuevoExtra.fecha+"T12:00:00").toLocaleDateString("es-PY"); setExtrasReg(ex=>[{id:Date.now(),fecha:fechaFmt,desc:nuevoExtra.desc,monto:Number(soloDigitos(nuevoExtra.monto)),destino:nuevoExtra.destino,categoria:nuevoExtra.categoria},...ex]); setNuevoExtra({desc:"",monto:"",destino:"ahorro",fecha:hoyLocal(),categoria:""}); setShowAddExtra(false); tk("✓ Ingreso extra guardado"); }
   function exportarBackup(){
-    const data={historial,extrasReg,fijos18,fijos5,vars,pcts,cuentas,meta,completadas,perfil,metasExtra,ahorroInicial,retiros,prestamosDados,ocultarSaldo,ganaderiaInicial,aportesGanaderia,gastosOcio,exportado:new Date().toISOString()};
+    const data={historial,extrasReg,fijos18,fijos5,vars,pcts,cuentas,meta,completadas,perfil,metasExtra,ahorroInicial,retiros,prestamosDados,ocultarSaldo,ganaderiaInicial,aportesGanaderia,gastosOcio,novedadesVistas,inicioOrden,exportado:new Date().toISOString()};
     try{
       const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
       const url=URL.createObjectURL(blob);
@@ -670,6 +686,8 @@ function App() {
         if(d.ganaderiaInicial!==undefined)setGanaderiaInicial(d.ganaderiaInicial);
         if(d.aportesGanaderia)setAportesGanaderia(d.aportesGanaderia);
         if(d.gastosOcio)setGastosOcio(d.gastosOcio);
+        if(d.novedadesVistas)setNovedadesVistas(d.novedadesVistas);
+        if(d.inicioOrden)setInicioOrden(d.inicioOrden);
         tk("✓ Respaldo restaurado");
   }
   function restaurarDesdeTexto(texto){
@@ -745,13 +763,13 @@ function App() {
       const meses = mesesTranscurridos(p.fecha);
       montoTotalAPagar = p.capital + (p.capital*p.interesPct/100*meses);
     } else {
-      montoTotalAPagar = p.montoTotalAPagar || (p.capital + (p.capital*(p.interesPct||0)/100)) || (p.monto*p.totalCuotas);
+      montoTotalAPagar = p.montoTotalAPagar || (p.capital + (p.capital*(p.interesPct||0)/100)) || 0;
     }
     const montoRestante = Math.max(0, montoTotalAPagar-montoCobrado);
     const interesGanado = p.capital ? montoTotalAPagar-p.capital : null;
     const pctInteres = p.capital>0 ? Math.round((interesGanado/p.capital)*100) : null;
     const pctPagado = montoTotalAPagar>0 ? Math.min(100,Math.round((montoCobrado/montoTotalAPagar)*100)) : 0;
-    const cuotaSugerida = Math.min(p.cuotaEstimada||p.monto||0, montoRestante);
+    const cuotaSugerida = Math.min(p.cuotaEstimada||0, montoRestante);
     const vencimiento = p.fecha ? sumarMeses(p.fecha, p.totalCuotas||0) : null;
     const hoy = new Date();
     let estado = "Pendiente";
@@ -773,10 +791,13 @@ function App() {
       const nuevaFecha = p.fechaPago ? sumarMeses(p.fechaPago,1) : hoyLocal();
       return {...p, pagos:[...(p.pagos||[]),{id:Date.now(),fecha:hoyLocal(),monto:montoPago,cuenta:cuentaDestino}], fechaPago:nuevaFecha};
     }));
-    if(cuentaDestino==="ahorro") setAhorroInicial(a=>a+montoPago);
+    if(cuentaDestino==="ahorro"){
+      const p = prestamosDados.find(x=>x.id===prestamoId);
+      setExtrasReg(ex=>[{id:Date.now(),fecha:new Date().toLocaleDateString("es-PY"),desc:`Cobro préstamo — ${p?.nombre||""}`,monto:montoPago,destino:"ahorro"},...ex]);
+    }
     else if(cuentaDestino==="ocio"){
       const p = prestamosDados.find(x=>x.id===prestamoId);
-      setExtrasReg(ex=>[{id:Date.now(),fecha:hoyLocal(),desc:`Cobro préstamo — ${p?.nombre||""}`,monto:montoPago,destino:"ocio"},...ex]);
+      setExtrasReg(ex=>[{id:Date.now(),fecha:new Date().toLocaleDateString("es-PY"),desc:`Cobro préstamo — ${p?.nombre||""}`,monto:montoPago,destino:"ocio"},...ex]);
     }
     setShowMarcarCobro(null);
     setMontoCobroInput("");
@@ -792,7 +813,7 @@ function App() {
     const capital = nuevaDeuda.capital?Number(soloDigitos(nuevaDeuda.capital)):null;
     setList([...list,{
       id:Date.now(), label:nuevaDeuda.nombre, monto, destino:"Banco", activo:true,
-      cuotas:{activo:true,pagadas:0,total}, capital
+      cuotas:{activo:true,pagadas:0,total}, capital, diaVenc:Number(nuevaDeuda.dia)
     }]);
     setNuevaDeuda({nombre:"",dia:"18",monto:"",totalCuotas:"",capital:""});
     setShowNuevaDeuda(false);
@@ -920,7 +941,7 @@ function App() {
           <div style={{fontSize:16,fontWeight:800,marginBottom:6,display:"flex",alignItems:"center",gap:8}}><NavIcon name="folder" size={17} strokeWidth={1.8}/> Respaldo como texto</div>
           <div style={{fontSize:12,color:C.muted,marginBottom:14}}>Copiá todo este texto y guardalo en cualquier lugar (una nota, un mensaje a vos mismo, etc.). Para restaurar, pegalo cuando te lo pida.</div>
           {(()=>{
-            const data={historial,extrasReg,fijos18,fijos5,vars,pcts,cuentas,meta,completadas,perfil,metasExtra,ahorroInicial,retiros,prestamosDados,ocultarSaldo,ganaderiaInicial,aportesGanaderia,gastosOcio,exportado:new Date().toISOString()};
+            const data={historial,extrasReg,fijos18,fijos5,vars,pcts,cuentas,meta,completadas,perfil,metasExtra,ahorroInicial,retiros,prestamosDados,ocultarSaldo,ganaderiaInicial,aportesGanaderia,gastosOcio,novedadesVistas,inicioOrden,exportado:new Date().toISOString()};
             const texto = JSON.stringify(data);
             return(
               <>
@@ -1080,7 +1101,7 @@ function App() {
             <div style={{fontSize:14,fontWeight:700,color:saludFinanciera.color,marginBottom:12}}>{saludFinanciera.nivel}</div>
             {saludFinanciera.checks.map((c,i)=>(
               <div key={i} style={{display:"flex",gap:8,alignItems:"center",padding:"5px 0",fontSize:12,color:"rgba(255,255,255,0.85)"}}>
-                <span style={{color:c.ok===true?C.accent:c.ok===false?C.warn:C.mutedLight,flexShrink:0,display:"flex"}}><NavIcon name={c.ok===true?"checkCircle":"alertTriangle"} size={15} strokeWidth={2}/></span><span>{c.label}</span>
+                <span style={{color:c.ok===true?C.accent:c.ok===false?C.warn:C.mutedLight,flexShrink:0,display:"flex"}}><NavIcon name={c.ok===true?"checkCircle":c.ok===false?"alertTriangle":"circleDash"} size={15} strokeWidth={2}/></span><span>{c.label}</span>
               </div>
             ))}
           </div>
@@ -1170,7 +1191,7 @@ function App() {
                   <div style={{color:racha>=3?C.warn:C.mutedLight,display:"flex"}}><NavIcon name={racha>=3?"flame":"moon"} size={26} strokeWidth={1.5}/></div>
                   <div>
                     <div style={{fontSize:20,fontWeight:800,color:racha>=3?C.warn:C.muted,fontFamily:"monospace"}}>{racha} quincena{racha!==1?"s":""}</div>
-                    <div style={{fontSize:11,color:C.muted}}>{racha>=3?"¡Seguido ahorrando! Seguí así.":"Ahorrando seguido desde tu última quincena en 0"}</div>
+                    <div style={{fontSize:11,color:C.muted}}>{racha>=3?"¡Seguido ahorrando! Seguí así.":racha>0?"Vas construyendo tu racha, no la cortes":"Ahorrá tu próxima quincena para empezar una racha"}</div>
                   </div>
                 </div>
               </div>
@@ -1282,7 +1303,7 @@ function App() {
                     </div>
                     <div style={{fontSize:11,color:C.muted}}>{fmt(c.acumulado)} de {fmt(c.objetivo)}</div>
                     {c.quincenasRestantes&&c.falta>0&&<div style={{fontSize:11,color:c.vencida?C.danger:C.accentDeep,marginTop:3,fontWeight:600}}>
-                      {c.vencida?"⚠️ Fecha ya pasada":`Necesitás ahorrar ${fmt(c.porQuincena)}/quincena para llegar a tiempo`}
+                      {c.vencida?<span style={{display:"inline-flex",alignItems:"center",gap:5}}><NavIcon name="alertTriangle" size={12} strokeWidth={2}/>Fecha ya pasada</span>:`Necesitás ahorrar ${fmt(c.porQuincena)}/quincena para llegar a tiempo`}
                     </div>}
                     {c.falta<=0&&<div style={{fontSize:11,color:C.accentDeep,marginTop:3,fontWeight:700,display:"flex",alignItems:"center",gap:5}}><NavIcon name="sparkle" size={13} strokeWidth={1.8}/> ¡Meta alcanzada!</div>}
                     {showAporte===m.id?<div style={{display:"flex",gap:8,marginTop:8}}>
@@ -1320,7 +1341,7 @@ function App() {
                   </div>
                 </div>
                 {Math.abs(pctDiff)>15?
-                  <div style={{fontSize:12,color:C.warn,fontWeight:600}}>⚠️ Tu gasto real está {pctDiff>0?"":"un "}{Math.abs(pctDiff)}% {pctDiff>0?"por encima":"por debajo"} de lo estimado. Considerá ajustar el monto en Config → Variables.</div>
+                  <div style={{fontSize:12,color:C.warn,fontWeight:600,display:"flex",alignItems:"center",gap:6}}><NavIcon name="alertTriangle" size={14} strokeWidth={1.8}/> Tu gasto real está {pctDiff>0?"":"un "}{Math.abs(pctDiff)}% {pctDiff>0?"por encima":"por debajo"} de lo estimado. Considerá ajustar el monto en Config → Variables.</div>
                   :<div style={{fontSize:12,color:C.accentDeep,fontWeight:600,display:"flex",alignItems:"center",gap:6}}><NavIcon name="checkCircle" size={14} strokeWidth={1.8}/> Tu estimado está bien calculado (diferencia de solo {Math.abs(pctDiff)}%).</div>
                 }
                 <div style={{fontSize:10,color:C.mutedLight,marginTop:8}}>Basado en {conDatos.length} quincena{conDatos.length!==1?"s":""} con gasto real cargado</div>
@@ -1520,8 +1541,8 @@ function App() {
               <div style={sectionTitle}>Distribución</div>
               {resultado.total>0&&<div style={{marginBottom:18}}>
                 <div style={{display:"flex",borderRadius:7,overflow:"hidden",height:9,marginBottom:8}}>
-                  <div style={{width:`${Math.min(100,(resultado.totalFijos/resultado.total)*100)}%`,background:"#e08585"}}/>
-                  <div style={{width:`${Math.min(100,(resultado.totalVars/resultado.total)*100)}%`,background:"#f0b054"}}/>
+                  <div style={{width:`${Math.min(100,(resultado.totalFijos/resultado.total)*100)}%`,background:C.danger}}/>
+                  <div style={{width:`${Math.min(100,(resultado.totalVars/resultado.total)*100)}%`,background:C.warn}}/>
                   <div style={{width:`${Math.max(0,(resultado.dist.ahorro/resultado.total)*100)}%`,background:`linear-gradient(90deg,${C.accent}33,${C.accentDeep})`}}/>
                 </div>
                 <div style={{display:"flex",gap:14,fontSize:10,color:C.muted,fontWeight:600}}>
@@ -1879,13 +1900,20 @@ function App() {
           </div>}
 
           {subTabH==="todos"&&<>
+            <div style={{position:"relative",marginBottom:14}}>
+              <input value={buscarHistorial} onChange={e=>setBuscarHistorial(e.target.value)} placeholder="Buscar por nombre..." style={{...inp,paddingLeft:38,fontSize:13}}/>
+              <div style={{position:"absolute",left:12,top:0,bottom:0,display:"flex",alignItems:"center",color:C.mutedLight}}><NavIcon name="search" size={15} strokeWidth={1.8}/></div>
+              {buscarHistorial&&<button onClick={()=>setBuscarHistorial("")} style={{position:"absolute",right:8,top:0,bottom:0,background:"transparent",border:"none",color:C.mutedLight,cursor:"pointer",fontSize:16,padding:"0 6px"}}>✕</button>}
+            </div>
             {(()=>{
-              function parseFechaPY(f){ const p=f?.split("/"); if(!p||p.length!==3) return new Date(0); return new Date(p[2],p[1]-1,p[0]); }
               const movimientos = [
                 ...histF.map(h=>({tipo:"quincena",fecha:h.fecha,icono:"calendar",label:`Quincena Día ${h.quincena}`,sub:`Ingreso ${fmt(h.total)}`,monto:h.ahorro,color:C.accentDeep,item:h})),
                 ...extrasF.filter(e=>e.destino!=="quincena").map(e=>({tipo:"extra",fecha:e.fecha,icono:"plusCircle",label:e.desc,sub:`→ ${destinoLabel(e.destino)}`,monto:e.monto,color:C.purple,item:e})),
                 ...filtrar(retiros).map(r=>({tipo:"retiro",fecha:r.fecha,icono:"alertCircle",label:r.motivo,sub:"Retiro de "+cn("ahorro"),monto:-r.monto,color:C.danger,item:r})),
-              ].sort((a,b)=>parseFechaPY(b.fecha)-parseFechaPY(a.fecha));
+                ...filtrar(gastosOcio).map(g=>({tipo:"ocio",fecha:g.fecha,icono:"gamepad",label:g.motivo,sub:"Retiro de Ocio",monto:-g.monto,color:C.warn,item:g})),
+                ...filtrar(historial.flatMap(h=>(h.pagos||[]).filter(p=>p.done&&p.fechaPagado).map(p=>({fecha:p.fechaPagado,label:p.label,monto:p.monto,quincenaDia:h.quincena})))).map(p=>({tipo:"pagoChecklist",fecha:p.fecha,icono:"checkCircle",label:p.label,sub:`Pago de la quincena — Día ${p.quincenaDia}`,monto:-p.monto,color:C.mutedLight,item:p})),
+              ].filter(m=>!buscarHistorial||m.label.toLowerCase().includes(buscarHistorial.toLowerCase())||m.sub.toLowerCase().includes(buscarHistorial.toLowerCase()))
+               .sort((a,b)=>parseFechaPY(b.fecha)-parseFechaPY(a.fecha));
               if(movimientos.length===0) return <div style={{textAlign:"center",color:C.muted,padding:"56px 0"}}><div style={{width:56,height:56,borderRadius:"50%",background:C.card,border:`1px solid ${C.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",color:C.mutedLight}}><NavIcon name="list" size={24} strokeWidth={1.5}/></div><div style={{fontSize:13,fontWeight:600}}>Sin movimientos registrados</div><div style={{fontSize:11,color:C.mutedLight,marginTop:4}}>Tus quincenas, extras y retiros van a aparecer acá</div></div>;
               return movimientos.map((m,i)=>{
                 const isExpanded = movExpandido===i;
@@ -1916,7 +1944,16 @@ function App() {
                       <div style={{display:"flex",justifyContent:"space-between",padding:"3px 0"}}><span>Motivo</span><span style={{color:C.text}}>{m.item.motivo}</span></div>
                       <div style={{display:"flex",justifyContent:"space-between",padding:"3px 0"}}><span>Monto retirado</span><span style={{color:C.danger,fontFamily:"monospace",fontWeight:700}}>{fmt(m.item.monto)}</span></div>
                     </>}
-                    {m.tipo!=="quincena"&&<button onClick={e=>{e.stopPropagation();if(window.confirm("¿Eliminar este movimiento?")){if(m.tipo==="extra")setExtrasReg(ex=>ex.filter(x=>x.id!==m.item.id));else if(m.tipo==="retiro")setRetiros(rs=>rs.filter(x=>x.id!==m.item.id));tk("Eliminado");}}} style={{marginTop:8,background:C.dangerSoft,border:"none",borderRadius:8,padding:"6px 12px",fontSize:11,color:C.danger,cursor:"pointer",fontWeight:600}}>✕ Eliminar</button>}
+                    {m.tipo==="ocio"&&<>
+                      <div style={{display:"flex",justifyContent:"space-between",padding:"3px 0"}}><span>Motivo</span><span style={{color:C.text}}>{m.item.motivo}</span></div>
+                      <div style={{display:"flex",justifyContent:"space-between",padding:"3px 0"}}><span>Monto retirado</span><span style={{color:C.warn,fontFamily:"monospace",fontWeight:700}}>{fmt(m.item.monto)}</span></div>
+                    </>}
+                    {m.tipo==="pagoChecklist"&&<>
+                      <div style={{display:"flex",justifyContent:"space-between",padding:"3px 0"}}><span>Pago</span><span style={{color:C.text}}>{m.item.label}</span></div>
+                      <div style={{display:"flex",justifyContent:"space-between",padding:"3px 0"}}><span>Monto</span><span style={{color:C.text,fontFamily:"monospace",fontWeight:700}}>{fmt(m.item.monto)}</span></div>
+                      <div style={{fontSize:10,color:C.mutedLight,marginTop:6}}>Para deshacer, andá a Historial → Quincena y destildalo ahí.</div>
+                    </>}
+                    {(m.tipo==="extra"||m.tipo==="retiro"||m.tipo==="ocio")&&<button onClick={e=>{e.stopPropagation();if(window.confirm("¿Eliminar este movimiento?")){if(m.tipo==="extra")setExtrasReg(ex=>ex.filter(x=>x.id!==m.item.id));else if(m.tipo==="retiro")setRetiros(rs=>rs.filter(x=>x.id!==m.item.id));else if(m.tipo==="ocio")setGastosOcio(gs=>gs.filter(x=>x.id!==m.item.id));tk("Eliminado");}}} style={{marginTop:8,background:C.dangerSoft,border:"none",borderRadius:8,padding:"6px 12px",fontSize:11,color:C.danger,cursor:"pointer",fontWeight:600}}>✕ Eliminar</button>}
                     {m.tipo==="quincena"&&<button onClick={e=>{e.stopPropagation();if(window.confirm("¿Eliminar esta quincena del historial? No se puede deshacer.")){setHistorial(hs=>hs.filter(x=>x.id!==m.item.id));setAportesGanaderia(ag=>ag.filter(x=>x.historialId!==m.item.id));tk("Eliminado");}}} style={{marginTop:8,background:C.dangerSoft,border:"none",borderRadius:8,padding:"6px 12px",fontSize:11,color:C.danger,cursor:"pointer",fontWeight:600}}>✕ Eliminar</button>}
                   </div>}
                 </div>
@@ -1973,16 +2010,23 @@ function App() {
             </div>}
             {histF.map(h=>{
               const pendientes = h.pagos?h.pagos.filter(p=>!p.done&&pagoAtrasado(p,h.fecha)).length:0;
+              const totalPagos = h.pagos?h.pagos.length:0;
+              const hechos = h.pagos?h.pagos.filter(p=>p.done).length:0;
+              const isExp = quincenaExpandida===h.id;
               return(
               <div key={h.id} style={cardStyle}>
-                <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
+                <div onClick={()=>setQuincenaExpandida(isExp?null:h.id)} style={{display:"flex",justifyContent:"space-between",cursor:"pointer"}}>
                   <div><div style={{fontSize:14,fontWeight:800}}>Quincena Día {h.quincena}</div><div style={{fontSize:11,color:C.muted}}>{h.fecha}</div></div>
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
                     <div style={{textAlign:"right"}}><div style={{fontSize:17,fontWeight:800,color:C.accentDeep,fontFamily:"monospace"}}>{fmt(h.ahorro)}</div><div style={{fontSize:10,color:C.muted}}>{cn("ahorro")}</div></div>
-                    <button onClick={()=>{if(window.confirm("¿Eliminar esta quincena del historial? No se puede deshacer.")){setHistorial(hs=>hs.filter(x=>x.id!==h.id));setAportesGanaderia(ag=>ag.filter(x=>x.historialId!==h.id));tk("Quincena eliminada");}}} style={{background:C.dangerSoft,border:"none",borderRadius:10,width:32,height:32,fontSize:11,color:C.danger,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>✕</button>
+                    <span style={{color:C.mutedLight,fontSize:12}}>{isExp?"▲":"▼"}</span>
                   </div>
                 </div>
-                <div style={{display:"flex",gap:8,marginBottom:h.pagos?12:0}}>
+                {!isExp&&h.pagos&&<div style={{marginTop:8,fontSize:11,fontWeight:700,color:pendientes>0?C.warn:C.accentDeep}}>
+                  {pendientes>0?`${pendientes} atrasado${pendientes!==1?"s":""}`:`✓ Todo pagado (${hechos}/${totalPagos})`}
+                </div>}
+                {isExp&&<>
+                <div style={{display:"flex",gap:8,marginTop:12,marginBottom:h.pagos?12:0}}>
                   <div style={{flex:1,background:C.bg,borderRadius:10,padding:"9px 11px",textAlign:"center"}}><div style={{fontSize:10,color:C.muted,fontWeight:600}}>Ingreso</div><div style={{fontSize:13,fontWeight:700,fontFamily:"monospace"}}>{fmt(h.total)}</div></div>
                   {h.extra>0&&<div style={{flex:1,background:C.bg,borderRadius:10,padding:"9px 11px",textAlign:"center"}}><div style={{fontSize:10,color:C.muted,fontWeight:600}}>Extra</div><div style={{fontSize:13,fontWeight:700,color:C.purple,fontFamily:"monospace"}}>{fmt(h.extra)}</div></div>}
                   {h.ocio>0&&<div style={{flex:1,background:C.warnSoft,borderRadius:10,padding:"9px 11px",textAlign:"center"}}><div style={{fontSize:10,color:C.warn,fontWeight:600}}>Ocio</div><div style={{fontSize:13,fontWeight:700,color:C.warn,fontFamily:"monospace"}}>{fmt(h.ocio)}</div></div>}
@@ -2001,7 +2045,10 @@ function App() {
                       <span style={{fontSize:11,fontFamily:"monospace",color:C.muted}}>{fmt(p.monto)}</span>
                     </div>
                   ))}
+                  {hechos<totalPagos&&<button onClick={()=>marcarTodoPagado(h.id)} style={{width:"100%",marginTop:8,padding:"9px 0",background:C.accentSoft,border:"none",borderRadius:9,color:C.accentDeep,fontWeight:700,fontSize:12,cursor:"pointer"}}>Marcar todo pagado</button>}
                 </div>}
+                </>}
+                {isExp&&<button onClick={()=>{if(window.confirm("¿Eliminar esta quincena del historial? No se puede deshacer.")){setHistorial(hs=>hs.filter(x=>x.id!==h.id));setAportesGanaderia(ag=>ag.filter(x=>x.historialId!==h.id));tk("Quincena eliminada");}}} style={{width:"100%",marginTop:10,padding:"9px 0",background:C.dangerSoft,border:"none",borderRadius:9,fontSize:12,color:C.danger,cursor:"pointer",fontWeight:600}}>✕ Eliminar quincena</button>}
               </div>
             );})}
             </>}
@@ -2085,7 +2132,7 @@ function App() {
           </>}
 
           {subTabH==="retiros"&&<>
-            {totalRetirado>0&&<div style={{background:"rgba(255,107,107,0.1)",border:"1px solid rgba(255,107,107,0.3)",borderRadius:14,padding:"14px 16px",marginBottom:14}}>
+            {totalRetirado>0&&<div style={{background:C.dangerSoft,border:`1px solid ${C.danger}55`,borderRadius:14,padding:"14px 16px",marginBottom:14}}>
               <div style={{fontSize:11,color:C.danger,fontWeight:700,marginBottom:4}}>Total retirado de {cn("ahorro")}</div>
               <div style={{fontSize:20,fontWeight:800,color:C.danger,fontFamily:"monospace"}}>{fmt(totalRetirado)}</div>
             </div>}
@@ -2102,7 +2149,7 @@ function App() {
               </div>
             ))}
           </>}
-          {(historial.length>0||extrasReg.length>0)&&<button onClick={()=>{if(window.confirm("¿Borrar todo?")){{setHistorial([]);setExtrasReg([]);setAportesGanaderia([]);tk("Historial borrado");}}}} style={{width:"100%",padding:"13px 0",background:"transparent",border:`1.5px solid ${C.cardBorder}`,borderRadius:14,color:C.muted,fontSize:13,cursor:"pointer",marginTop:14,fontWeight:600}}>Borrar todo</button>}
+          {(historial.length>0||extrasReg.length>0||retiros.length>0||gastosOcio.length>0)&&<button onClick={()=>{if(window.confirm("¿Borrar todo?")){{setHistorial([]);setExtrasReg([]);setAportesGanaderia([]);setRetiros([]);setGastosOcio([]);tk("Historial borrado");}}}} style={{width:"100%",padding:"13px 0",background:"transparent",border:`1.5px solid ${C.cardBorder}`,borderRadius:14,color:C.muted,fontSize:13,cursor:"pointer",marginTop:14,fontWeight:600}}>Borrar todo</button>}
         </>}
 
         {tab==="config"&&<>
@@ -2376,16 +2423,16 @@ function App() {
             <div style={{...cardStyle,padding:22}}>
               <div style={{fontSize:15,fontWeight:800,marginBottom:8,display:"flex",alignItems:"center",gap:8}}><NavIcon name="save" size={16} strokeWidth={1.8}/> Exportar respaldo</div>
               <div style={{fontSize:13,color:C.muted,marginBottom:18,fontWeight:500}}>Descargá un archivo .json con todo tu historial, configuración y cuotas.</div>
-              <button onClick={exportarBackup} style={{width:"100%",padding:"15px 0",background:`linear-gradient(135deg,${C.accentDeep},${C.accent})`,border:"none",borderRadius:13,color:C.white,fontWeight:700,fontSize:15,cursor:"pointer",boxShadow:"0 4px 14px rgba(15,157,88,0.25)"}}><NavIcon name="download" size={16} strokeWidth={1.8}/> Descargar respaldo</button>
+              <button onClick={exportarBackup} style={{width:"100%",padding:"15px 0",background:`linear-gradient(135deg,${C.accentDeep},${C.accent})`,border:"none",borderRadius:13,color:C.white,fontWeight:700,fontSize:15,cursor:"pointer",boxShadow:"0 4px 14px rgba(15,157,88,0.25)",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}><NavIcon name="download" size={16} strokeWidth={1.8}/> Descargar respaldo</button>
               <button onClick={()=>setShowBackupTexto(true)} style={{width:"100%",marginTop:10,padding:"11px 0",background:"transparent",border:`1px solid ${C.cardBorder}`,borderRadius:11,color:C.muted,fontWeight:600,fontSize:12,cursor:"pointer"}}>¿No descarga? Ver como texto</button>
             </div>
             <div style={{...cardStyle,padding:22}}>
               <div style={{fontSize:15,fontWeight:800,marginBottom:8,display:"flex",alignItems:"center",gap:8}}><NavIcon name="upload" size={16} strokeWidth={1.8}/> Restaurar respaldo</div>
               <div style={{fontSize:13,color:C.muted,marginBottom:18,fontWeight:500}}><strong style={{color:C.danger}}>Esto reemplaza los datos actuales.</strong> Exportá primero si tenés datos nuevos.</div>
-              <button onClick={()=>fileRef.current?.click()} style={{width:"100%",padding:"15px 0",background:C.bg,border:`1.5px solid ${C.cardBorder}`,borderRadius:13,color:C.text,fontWeight:700,fontSize:15,cursor:"pointer"}}><NavIcon name="folder" size={16} strokeWidth={1.8}/> Cargar archivo</button>
+              <button onClick={()=>fileRef.current?.click()} style={{width:"100%",padding:"15px 0",background:C.bg,border:`1.5px solid ${C.cardBorder}`,borderRadius:13,color:C.text,fontWeight:700,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}><NavIcon name="folder" size={16} strokeWidth={1.8}/> Cargar archivo</button>
               <button onClick={()=>setShowRestaurarTexto(true)} style={{width:"100%",marginTop:10,padding:"11px 0",background:"transparent",border:`1px solid ${C.cardBorder}`,borderRadius:11,color:C.muted,fontWeight:600,fontSize:12,cursor:"pointer"}}>¿No carga? Pegar texto</button>
             </div>
-            <div style={{background:C.warnSoft,border:`1px solid #f3d49a`,borderRadius:14,padding:"13px 16px",fontSize:12,color:C.warn,fontWeight:500}}>⚠️ Exportá un respaldo regularmente. Guarda historial, cuotas, cuentas y toda la configuración.</div>
+            <div style={{background:C.warnSoft,border:`1px solid #f3d49a`,borderRadius:14,padding:"13px 16px",fontSize:12,color:C.warn,fontWeight:500,display:"flex",alignItems:"center",gap:8}}><NavIcon name="alertTriangle" size={14} strokeWidth={1.8}/> Exportá un respaldo regularmente. Guarda historial, cuotas, cuentas y toda la configuración.</div>
           </>}
         </>}
       </div>
