@@ -39,7 +39,7 @@ async function sSet(k, v) {
   catch (err) { try{ window.dispatchEvent(new CustomEvent("finanzas-storage-error",{detail:err&&err.name})); }catch{} return false; }
 }
 
-const APP_VERSION = "2.6";
+const APP_VERSION = "2.7";
 const NOVEDADES = [
   // Agregá acá cada cosa nueva. El "id" tiene que ser único y no repetirse nunca.
   { id:"nv1", titulo:"Saldo de Ocio", texto:"Ahora podés ver cuánto te queda disponible para gastar en Ocio, acumulado mes a mes." },
@@ -501,7 +501,7 @@ function App() {
   }
   function registrarGastoOcio(){
     if(!nuevoGastoOcio.monto) return;
-    const fechaFmt = nuevoGastoOcio.fecha ? new Date(nuevoGastoOcio.fecha+"T12:00:00").toLocaleDateString("es-PY") : hoyLocal();
+    const fechaFmt = nuevoGastoOcio.fecha ? new Date(nuevoGastoOcio.fecha+"T12:00:00").toLocaleDateString("es-PY") : new Date().toLocaleDateString("es-PY");
     setGastosOcio(g=>[{id:Date.now(),monto:Number(soloDigitos(nuevoGastoOcio.monto)),motivo:nuevoGastoOcio.motivo||"Gasto de ocio",fecha:fechaFmt},...g]);
     setNuevoGastoOcio({monto:"",motivo:"",fecha:""});
     setShowGastoOcio(false);
@@ -2132,22 +2132,42 @@ function App() {
           </>}
 
           {subTabH==="retiros"&&<>
-            {totalRetirado>0&&<div style={{background:C.dangerSoft,border:`1px solid ${C.danger}55`,borderRadius:14,padding:"14px 16px",marginBottom:14}}>
-              <div style={{fontSize:11,color:C.danger,fontWeight:700,marginBottom:4}}>Total retirado de {cn("ahorro")}</div>
-              <div style={{fontSize:20,fontWeight:800,color:C.danger,fontFamily:"monospace"}}>{fmt(totalRetirado)}</div>
-            </div>}
-            {retiros.length===0?<div style={{textAlign:"center",color:C.muted,padding:"50px 0"}}><div style={{width:56,height:56,borderRadius:"50%",background:C.card,border:`1px solid ${C.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",color:C.mutedLight}}><NavIcon name="alertCircle" size={24} strokeWidth={1.5}/></div><div style={{fontSize:13,fontWeight:600}}>Sin retiros registrados</div></div>
-            :retiros.map(r=>(
-              <div key={r.id} style={cardStyle}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div><div style={{fontSize:14,fontWeight:700}}>{r.motivo}</div><div style={{fontSize:11,color:C.muted,marginTop:3}}>{r.fecha}</div></div>
-                  <div style={{display:"flex",alignItems:"center",gap:10}}>
-                    <div style={{fontSize:16,fontWeight:800,color:C.danger,fontFamily:"monospace"}}>− {fmt(r.monto)}</div>
-                    <button onClick={()=>{if(window.confirm("¿Eliminar este retiro del historial?")){setRetiros(rs=>rs.filter(x=>x.id!==r.id));tk("Retiro eliminado");}}} style={{background:C.dangerSoft,border:"none",borderRadius:7,padding:"6px 9px",color:C.danger,cursor:"pointer",fontSize:12}}>✕</button>
-                  </div>
-                </div>
-              </div>
-            ))}
+            {(()=>{
+              const totalOcioRetirado = gastosOcio.reduce((a,g)=>a+(g.monto||0),0);
+              const todosRetiros = [
+                ...retiros.map(r=>({...r,tipo:"ahorro"})),
+                ...gastosOcio.map(g=>({...g,motivo:g.motivo,tipo:"ocio"})),
+              ].sort((a,b)=>parseFechaPY(b.fecha)-parseFechaPY(a.fecha));
+              return(
+                <>
+                  {(totalRetirado>0||totalOcioRetirado>0)&&<div style={{display:"flex",gap:8,marginBottom:14}}>
+                    {totalRetirado>0&&<div style={{flex:1,background:C.dangerSoft,border:`1px solid ${C.danger}55`,borderRadius:14,padding:"14px 16px"}}>
+                      <div style={{fontSize:11,color:C.danger,fontWeight:700,marginBottom:4}}>De {cn("ahorro")}</div>
+                      <div style={{fontSize:17,fontWeight:800,color:C.danger,fontFamily:"monospace"}}>{fmt(totalRetirado)}</div>
+                    </div>}
+                    {totalOcioRetirado>0&&<div style={{flex:1,background:C.warnSoft,border:`1px solid ${C.warn}55`,borderRadius:14,padding:"14px 16px"}}>
+                      <div style={{fontSize:11,color:C.warn,fontWeight:700,marginBottom:4}}>De Ocio</div>
+                      <div style={{fontSize:17,fontWeight:800,color:C.warn,fontFamily:"monospace"}}>{fmt(totalOcioRetirado)}</div>
+                    </div>}
+                  </div>}
+                  {todosRetiros.length===0?<div style={{textAlign:"center",color:C.muted,padding:"50px 0"}}><div style={{width:56,height:56,borderRadius:"50%",background:C.card,border:`1px solid ${C.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 14px",color:C.mutedLight}}><NavIcon name="alertCircle" size={24} strokeWidth={1.5}/></div><div style={{fontSize:13,fontWeight:600}}>Sin retiros registrados</div></div>
+                  :todosRetiros.map(r=>(
+                    <div key={`${r.tipo}-${r.id}`} style={cardStyle}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <div>
+                          <div style={{fontSize:14,fontWeight:700}}>{r.motivo}</div>
+                          <div style={{fontSize:11,color:C.muted,marginTop:3}}>{r.fecha} · {r.tipo==="ahorro"?cn("ahorro"):"Ocio"}</div>
+                        </div>
+                        <div style={{display:"flex",alignItems:"center",gap:10}}>
+                          <div style={{fontSize:16,fontWeight:800,color:r.tipo==="ahorro"?C.danger:C.warn,fontFamily:"monospace"}}>− {fmt(r.monto)}</div>
+                          <button onClick={()=>{if(window.confirm("¿Eliminar este retiro del historial?")){if(r.tipo==="ahorro")setRetiros(rs=>rs.filter(x=>x.id!==r.id));else setGastosOcio(gs=>gs.filter(x=>x.id!==r.id));tk("Retiro eliminado");}}} style={{background:C.dangerSoft,border:"none",borderRadius:7,padding:"6px 9px",color:C.danger,cursor:"pointer",fontSize:12}}>✕</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              );
+            })()}
           </>}
           {(historial.length>0||extrasReg.length>0||retiros.length>0||gastosOcio.length>0)&&<button onClick={()=>{if(window.confirm("¿Borrar todo?")){{setHistorial([]);setExtrasReg([]);setAportesGanaderia([]);setRetiros([]);setGastosOcio([]);tk("Historial borrado");}}}} style={{width:"100%",padding:"13px 0",background:"transparent",border:`1.5px solid ${C.cardBorder}`,borderRadius:14,color:C.muted,fontSize:13,cursor:"pointer",marginTop:14,fontWeight:600}}>Borrar todo</button>}
         </>}
