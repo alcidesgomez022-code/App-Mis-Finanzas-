@@ -28,9 +28,6 @@
 <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
-<script crossorigin src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script crossorigin src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script crossorigin src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <div id="jserror"></div>
@@ -42,41 +39,6 @@
     el.textContent = 'Error: ' + msg + ' (línea ' + line + ')';
     return false;
   };
-  // Conexión a Firebase (nube) — proyecto propio de Mis Finanzas
-  const firebaseConfig = {
-    apiKey: "AIzaSyAWoQzx9QKVCSAwyLdMcXMefitTD8JiXng",
-    authDomain: "mis-finanzas-app-963d0.firebaseapp.com",
-    projectId: "mis-finanzas-app-963d0",
-    storageBucket: "mis-finanzas-app-963d0.firebasestorage.app",
-    messagingSenderId: "674977479594",
-    appId: "1:674977479594:web:3024b7e9a67594f4cfc9d3"
-  };
-  firebase.initializeApp(firebaseConfig);
-  window.__fbAuth = firebase.auth();
-  window.__fbDb = firebase.firestore();
-  window.__fbUser = null;
-  window.__fbAuthResolved = false;
-  window.__fbAuthListeners = [];
-  window.__fbReady = new Promise(function(resolve){
-    window.__fbAuth.onAuthStateChanged(function(user){
-      window.__fbUser = user;
-      window.__fbAuthResolved = true;
-      if(user){ window.__fbUid = user.uid; }
-      window.__fbAuthListeners.forEach(function(fn){ fn(user); });
-      if(user) resolve(user.uid);
-    });
-  });
-  window.__fbSignIn = function(){
-    var provider = new firebase.auth.GoogleAuthProvider();
-    window.__fbAuth.signInWithPopup(provider).catch(function(e){
-      var el = document.getElementById('jserror');
-      el.style.display = 'block';
-      el.textContent = 'Error al iniciar sesión: ' + e.message + ' (' + e.code + ')';
-    });
-  };
-  window.__fbSignOut = function(){
-    window.__fbAuth.signOut();
-  };
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function(){
       navigator.serviceWorker.register('sw.js').catch(function(){});
@@ -86,44 +48,17 @@
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useRef } = React;
 
-let __fbCache = null;
-let __fbMigrated = false;
-async function __fbGetDoc(uid){
-  if(__fbCache) return __fbCache;
-  const snap = await window.__fbDb.collection("usuarios").doc(uid).get();
-  let data = snap.exists ? snap.data() : {};
-  if(Object.keys(data).length===0 && !__fbMigrated){
-    __fbMigrated = true;
-    const migrado = {};
-    for(let i=0;i<localStorage.length;i++){
-      const fullKey = localStorage.key(i);
-      if(fullKey && fullKey.startsWith("finanzas_")){
-        const shortKey = fullKey.replace("finanzas_","");
-        try{ migrado[shortKey] = JSON.parse(localStorage.getItem(fullKey)); }catch{}
-      }
-    }
-    if(Object.keys(migrado).length>0){
-      try{ await window.__fbDb.collection("usuarios").doc(uid).set(migrado,{merge:true}); }catch{}
-      data = migrado;
-    }
-  }
-  __fbCache = data;
-  return __fbCache;
-}
-async function sGet(k) {
+function sGet(k) {
   try {
-    const uid = await window.__fbReady;
-    const data = await __fbGetDoc(uid);
-    return data[k]!==undefined ? data[k] : null;
+    const raw = localStorage.getItem("finanzas_"+k);
+    return raw!==null ? JSON.parse(raw) : null;
   } catch { return null; }
 }
-async function sSet(k, v) {
+function sSet(k, v) {
   try {
-    const uid = await window.__fbReady;
-    if(__fbCache) __fbCache[k] = v;
-    await window.__fbDb.collection("usuarios").doc(uid).set({[k]:v}, {merge:true});
+    localStorage.setItem("finanzas_"+k, JSON.stringify(v));
     return true;
-  } catch (err) { try{ window.dispatchEvent(new CustomEvent("finanzas-storage-error",{detail:err&&err.message})); }catch{} return false; }
+  } catch (err) { return false; }
 }
 
 const APP_VERSION = "6.2";
@@ -307,7 +242,6 @@ function ProgressBar({ pagadas, total, monto, label }) {
 
 function App() {
   const [ready, setReady] = useState(false);
-  const [fbUser, setFbUser] = useState(undefined);
   const [novedadesVistas, setNovedadesVistas] = useState([]);
   const [inicioOrden, setInicioOrden] = useState(INICIO_CARDS.map(c=>({id:c.id,visible:true})));
   const [tab, setTab] = useState("inicio");
@@ -404,15 +338,6 @@ function App() {
   const fileRef = useRef();
 
   useEffect(()=>{
-    function handler(user){ setFbUser(user||null); }
-    if(window.__fbAuthResolved) handler(window.__fbUser);
-    window.__fbAuthListeners = window.__fbAuthListeners||[];
-    window.__fbAuthListeners.push(handler);
-    return ()=>{ window.__fbAuthListeners = (window.__fbAuthListeners||[]).filter(f=>f!==handler); };
-  },[]);
-
-  useEffect(()=>{
-    if(!fbUser) return;
     async function cargar(){
       const [h,er,f18,f5,v,p,cu,m,comp,perf,me,ai,ret,pd,os,gi,ag,ub,go,nv,io] = await Promise.all([
         sGet("h_v8"),sGet("er_v8"),sGet("f18_v8"),sGet("f5_v8"),
@@ -437,7 +362,7 @@ function App() {
       setReady(true);
     }
     cargar();
-  },[fbUser]);
+  },[]);
 
   useEffect(()=>{ if(ready) sSet("h_v8",historial); },[historial,ready]);
   useEffect(()=>{ if(ready) sSet("er_v8",extrasReg); },[extrasReg,ready]);
@@ -961,17 +886,6 @@ function App() {
   const destinoLabel = k => ({ahorro:cn("ahorro"),ocio:"Ocio",operativa:cn("operativa"),ganaderia:cn("ganaderia"),mutual:cn("mutual"),Banco:"Banco",Servicio:"Servicio",quincena:"parte de la quincena"})[k]||k;
   const todosConCuotas = [...fijos18.map(f=>({...f,dia:"18"})),...fijos5.map(f=>({...f,dia:"5"}))].filter(f=>f.cuotas?.activo&&f.activo);
 
-  if(fbUser===undefined) return <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#2F4FD1,#3D63FF)",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{textAlign:"center"}}><div style={{fontSize:26,fontWeight:700,color:"#fff",letterSpacing:-0.3}}>Mis Finanzas</div><div style={{fontSize:12,color:"rgba(255,255,255,0.7)",marginTop:8}}>Cargando…</div></div></div>;
-  if(fbUser===null) return (
-    <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,textAlign:"center"}}>
-      <div style={{fontSize:22,fontWeight:800,color:C.white,marginBottom:8}}>Mis Finanzas</div>
-      <div style={{fontSize:13,color:C.muted,marginBottom:28}}>Iniciá sesión para ver tus datos, sincronizados en todos tus dispositivos.</div>
-      <button onClick={()=>window.__fbSignIn()} style={{display:"flex",alignItems:"center",gap:10,padding:"13px 24px",background:C.white,border:"none",borderRadius:12,color:"#1a1a1a",fontWeight:700,fontSize:14,cursor:"pointer"}}>
-        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.7-.2-2.5H12v4.7h6.4c-.3 1.5-1.1 2.7-2.4 3.6v3h3.9c2.3-2.1 3.6-5.2 3.6-8.8z"/><path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.9-3c-1.1.7-2.4 1.1-4 1.1-3.1 0-5.7-2.1-6.6-4.9H1.4v3.1C3.4 21.3 7.4 24 12 24z"/><path fill="#FBBC05" d="M5.4 14.3c-.2-.7-.4-1.5-.4-2.3s.1-1.6.4-2.3V6.6H1.4C.5 8.3 0 10.1 0 12s.5 3.7 1.4 5.4l4-3.1z"/><path fill="#EA4335" d="M12 4.8c1.7 0 3.3.6 4.5 1.8l3.4-3.4C17.9 1.2 15.2 0 12 0 7.4 0 3.4 2.7 1.4 6.6l4 3.1c.9-2.8 3.5-4.9 6.6-4.9z"/></svg>
-        Iniciar sesión con Google
-      </button>
-    </div>
-  );
   if(!ready) return <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#2F4FD1,#3D63FF)",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{textAlign:"center"}}><div style={{fontSize:26,fontWeight:700,color:"#fff",letterSpacing:-0.3}}>Mis Finanzas</div><div style={{fontSize:12,color:"rgba(255,255,255,0.7)",marginTop:8}}>Cargando…</div></div></div>;
 
   return (
@@ -1303,13 +1217,6 @@ function App() {
           <div style={{width:34,height:34,borderRadius:10,background:"rgba(255,255,255,0.05)",display:"flex",alignItems:"center",justifyContent:"center",color:C.text}}><NavIcon name="folder" size={16} strokeWidth={1.7}/></div>
           <div style={{fontSize:14,fontWeight:500,color:C.text}}>Respaldo y restauración</div>
           <div style={{marginLeft:"auto",color:C.mutedLight}}>›</div>
-        </div>
-
-        <div style={{height:1,background:"rgba(255,255,255,0.06)",margin:"10px 0"}}/>
-
-        <div onClick={()=>{if(window.confirm("¿Cerrar sesión?")){window.__fbSignOut();}}} style={{display:"flex",alignItems:"center",gap:14,padding:"12px 4px",cursor:"pointer"}}>
-          <div style={{width:34,height:34,borderRadius:10,background:C.dangerSoft,display:"flex",alignItems:"center",justifyContent:"center",color:C.danger}}><NavIcon name="alertCircle" size={16} strokeWidth={1.7}/></div>
-          <div style={{fontSize:14,fontWeight:500,color:C.danger}}>Cerrar sesión</div>
         </div>
       </div>}
 
@@ -2733,10 +2640,6 @@ function App() {
             <div style={{...sectionTitle,marginBottom:6}}>Perfil del usuario</div>
             <div style={{fontSize:12,color:C.muted,marginBottom:18,fontWeight:500}}>Cambiá el nombre y las iniciales que aparecen en el saludo. Útil si otra persona usa esta app.</div>
             <div style={{fontSize:10,color:C.mutedLight,marginBottom:8}}>Versión instalada: v{APP_VERSION}</div>
-            {fbUser&&<div style={{background:C.bg,borderRadius:10,padding:"10px 12px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{fontSize:11,color:C.muted}}>Sesión: <strong style={{color:C.text}}>{fbUser.email||"cuenta de Google"}</strong></div>
-              <button onClick={()=>{if(window.confirm("¿Cerrar sesión?")){window.__fbSignOut();}}} style={{background:"transparent",border:`1px solid ${C.cardBorder}`,borderRadius:8,padding:"6px 11px",color:C.muted,fontSize:11,cursor:"pointer"}}>Cerrar sesión</button>
-            </div>}
             {editPerfil?<>
               <div style={{marginBottom:12}}>
                 <div style={{fontSize:11,color:C.muted,marginBottom:6,fontWeight:600}}>Nombre</div>
