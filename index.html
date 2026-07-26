@@ -78,7 +78,7 @@ function sSet(k, v) {
   } catch (err) { try{ window.dispatchEvent(new CustomEvent("finanzas-storage-error",{detail:err&&err.message})); }catch{} return false; }
 }
 
-const APP_VERSION = "11.3";
+const APP_VERSION = "11.4";
 const NOVEDADES = [
   // Agregá acá cada cosa nueva. El "id" tiene que ser único y no repetirse nunca.
   { id:"nv1", titulo:"Saldo de Ocio", texto:"Ahora podés ver cuánto te queda disponible para gastar en Ocio, acumulado mes a mes." },
@@ -1863,7 +1863,7 @@ function App() {
                 {isExpanded&&<div style={{display:"flex",gap:16,marginTop:10}}>
                   <span onClick={e=>{e.stopPropagation();setEditCuotas(isEditing?null:key);}} style={{fontSize:12,color:C.mutedLight,cursor:"pointer",fontWeight:500}}>Editar</span>
                 </div>}
-                {isEditing&&<div style={{background:C.bg,borderRadius:12,padding:14,marginTop:12}}>
+                {isEditing&&<div onClick={e=>e.stopPropagation()} style={{background:C.bg,borderRadius:12,padding:14,marginTop:12}}>
                   <div style={{fontSize:11,color:C.muted,marginBottom:10,fontWeight:600}}>Ajustar cuotas manualmente</div>
                   <div style={{display:"flex",gap:8,marginBottom:10}}>
                     <div style={{flex:1}}><div style={{fontSize:11,color:C.muted,marginBottom:5}}>Pagadas</div><input defaultValue={f.cuotas.pagadas} id={`cp-${key}`} type="text" inputMode="numeric" onChange={e=>{e.target.value=soloDigitos(e.target.value);}} style={{...inp,fontSize:14,fontFamily:"monospace"}}/></div>
@@ -2014,7 +2014,7 @@ function App() {
                 </div>
                 {p.concepto&&<div style={{fontSize:11,color:C.muted,marginBottom:6}}>{p.concepto}</div>}
                 <div style={{fontSize:11,color:C.muted,marginBottom:10}}>Cuota ref: {fmt(p.cuotaEstimada||p.monto)}{info.vencimiento?` · vence: ${info.vencimiento}`:""}</div>
-                {isEditing&&<div style={{background:C.bg,borderRadius:12,padding:14,marginBottom:12}}>
+                {isEditing&&<div onClick={e=>e.stopPropagation()} style={{background:C.bg,borderRadius:12,padding:14,marginBottom:12}}>
                   <div style={{fontSize:11,color:C.muted,marginBottom:8}}>Monto total ya cobrado (ajuste manual)</div>
                   <input defaultValue={new Intl.NumberFormat("es-PY").format(info.montoCobrado)} id={`pc-${p.id}`} type="text" inputMode="numeric" onChange={e=>{e.target.value=formatearMientrasEscribe(e.target.value);}} style={{...inp,fontSize:14,fontFamily:"'Rubik',sans-serif",marginBottom:10}}/>
                   <div style={{fontSize:11,color:C.muted,marginBottom:8}}>Fecha del próximo pago</div>
@@ -2454,7 +2454,7 @@ function App() {
                   <div key={f.id} style={{borderBottom:`1px solid ${C.divider}`,paddingBottom:9,marginBottom:9}}>
                     <div style={{display:"flex",alignItems:"center",gap:10,paddingTop:9}}>
                       <div onClick={()=>setList(list.map(x=>x.id===f.id?{...x,activo:!x.activo}:x))} style={{width:23,height:23,borderRadius:7,flexShrink:0,background:f.activo?`linear-gradient(135deg,${C.accentDeep},${C.accent})`:C.bg,border:`2px solid ${f.activo?"transparent":C.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:12,color:C.white}}>{f.activo?"✓":""}</div>
-                      {editando===f.id?<div style={{flex:1,display:"flex",flexDirection:"column",gap:7}}>
+                      {editando===f.id?<div onClick={e=>e.stopPropagation()} style={{flex:1,display:"flex",flexDirection:"column",gap:7}}>
                         <input defaultValue={f.label} id={`el-${f.id}`} style={{...inp,fontSize:13}}/>
                         <input id={`em-${f.id}`} type="text" inputMode="numeric" defaultValue={new Intl.NumberFormat("es-PY").format(f.monto)} onChange={e=>{e.target.value=formatearMientrasEscribe(e.target.value);}} style={{...inp,fontSize:13,fontFamily:"'Rubik',sans-serif"}}/>
                         <div>
@@ -2498,7 +2498,7 @@ function App() {
             <div style={sectionTitle}>Variables → {cn("operativa")}</div>
             {vars.map(v=>(
               <div key={v.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:`1px solid ${C.divider}`}}>
-                {editando===`v${v.id}`?<div style={{flex:1,display:"flex",flexDirection:"column",gap:7}}>
+                {editando===`v${v.id}`?<div onClick={e=>e.stopPropagation()} style={{flex:1,display:"flex",flexDirection:"column",gap:7}}>
                   <input defaultValue={v.label} id={`vl-${v.id}`} style={{...inp,fontSize:13}}/>
                   <input id={`vm-${v.id}`} type="text" inputMode="numeric" defaultValue={new Intl.NumberFormat("es-PY").format(v.monto)} onChange={e=>{e.target.value=formatearMientrasEscribe(e.target.value);}} style={{...inp,fontSize:13,fontFamily:"'Rubik',sans-serif"}}/>
                   <div style={{display:"flex",gap:7}}>
@@ -2507,7 +2507,7 @@ function App() {
                   </div>
                 </div>:<>
                   <div style={{flex:1}}><div style={{fontSize:13,fontWeight:500}}>{v.label}</div><div style={{fontSize:11,color:C.muted,fontFamily:"'Rubik',sans-serif"}}>{fmt(v.monto)}</div></div>
-                  <button onClick={()=>setEditando(`v${v.id}`)} style={{background:"rgba(255,255,255,0.05)",border:"none",borderRadius:8,padding:"6px 11px",fontSize:11,color:C.muted,cursor:"pointer"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
+                  <button onClick={e=>{e.stopPropagation();setEditando(`v${v.id}`);}} style={{background:"rgba(255,255,255,0.05)",border:"none",borderRadius:8,padding:"6px 11px",fontSize:11,color:C.muted,cursor:"pointer"}}><NavIcon name="pencil" size={13} strokeWidth={2}/></button>
                   <button onClick={()=>{if(window.confirm("¿Eliminar este gasto variable?")){setVars(vars.filter(x=>x.id!==v.id));tk("Eliminado");}}} style={{background:C.dangerSoft,border:"none",borderRadius:8,padding:"6px 10px",fontSize:11,color:C.danger,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><NavIcon name="trash" size={13} strokeWidth={1.8}/></button>
                 </>}
               </div>
